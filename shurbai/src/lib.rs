@@ -24,8 +24,8 @@ use types::{ModelConfig, ModelManager};
 use std::io::Write;
 use std::num::NonZeroU32;
 
-use std::sync::Arc;
 use std::time::Duration;
+use std::collections::HashMap;
 
 pub type TokenCallback = fn(String, LlamaToken, bool) -> Result<()>;
 
@@ -38,8 +38,17 @@ pub struct LlamaResult {
     generated_tokens: Vec<LlamaToken>
 }
 
-pub fn load_model(path:String, _model_config: ModelConfig, llama_backend: &LlamaBackend) -> Result<LlamaModel> {
-    let params = LlamaModelParams::default();
+pub fn load_model(path:String, model_config: ModelConfig, llama_backend: &LlamaBackend) -> Result<LlamaModel> {
+    let params = {
+        #[cfg(feature = "cublas")]
+        if model_config.use_gpu.unwrap_or(true){
+            LlamaModelParams::default().with_n_gpu_layers(1000)
+        } else {
+            LlamaModelParams::default()
+        }
+        #[cfg(not(feature = "cublas"))]
+        LlamaModelParams::default()
+    };
     let model = LlamaModel::load_from_file(llama_backend, path.clone(), &params)
         .with_context(|| format!("failed to load model from {}", path))?;
     Ok(model)
@@ -47,20 +56,21 @@ pub fn load_model(path:String, _model_config: ModelConfig, llama_backend: &Llama
 
 pub fn load_models(models: Vec<types::ModelDefinition>) -> Result<ModelManager> {
     let llama_backend = LlamaBackend::init().expect("failed to initialize llama_backend");
-    let arc_llama_backend = Arc::new(llama_backend);
-    let mut loaded_models = Vec::new();
+    //let arc_llama_backend = Arc::new(llama_backend);
+    let mut loaded_models = HashMap::new();
     for model in models {
-        let llama_model = load_model(model.path, model.config.clone(), arc_llama_backend.as_ref())
+        let llama_model = load_model(model.path, model.config.clone(), &llama_backend)
             .expect("failed to load model");
         let model_state = types::ModelState {
-            model: Arc::new(llama_model),
+            model: llama_model,
             config: model.config,
         };
-        loaded_models.push(model_state);
+        let name = model.name.clone();
+        loaded_models.insert(name, model_state);
     }
     let model_manager = ModelManager {
         models: loaded_models,
-        backend: arc_llama_backend,
+        backend: llama_backend,
     };
     Ok(model_manager)
 }

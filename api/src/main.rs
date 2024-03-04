@@ -1,5 +1,7 @@
 mod types;
 mod routes;
+use std::sync::Arc;
+
 use axum::{
     routing::get, Router
 };
@@ -10,12 +12,13 @@ use crate::types::Config;
 #[tokio::main]
 async fn main() {
     // read the config file
-    let config_data = std::fs::read_to_string("config.json").expect("failed to read config file");
+    let config_data = std::fs::read_to_string("./config.json").expect("failed to read config file");
     let config: Config = serde_json::from_str(&config_data).expect("failed to parse and/or assign default Json and config");
     println!("Loaded config.json");
-    let model_manager = load_models(config.models).expect("failed to load models");
+    let model_manager = Arc::new(load_models(config.models).expect("failed to load models"));
     // build our application with a single route
-    let app = Router::new().route("/", get(routes::index));
+    let app = Router::new().route("/", get(routes::index))
+        .with_state(model_manager);
 
     // run our app with hyper, listening globally on port 8080
     let address = "0.0.0.0:8080";

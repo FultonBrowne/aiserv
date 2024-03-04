@@ -3,3 +3,5 @@ members = [
     "shurbai",
     "api"
 ]
+
+resolver = "2"
