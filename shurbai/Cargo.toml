@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.80"
 llama-cpp-2 = "0.1.27"
+serde = { version = "1.0", features = ["derive"] }
