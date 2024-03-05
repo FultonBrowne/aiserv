@@ -1,5 +1,3 @@
-
-
 //! This is an translation of simple.cpp in llama.cpp using llama-cpp-2.
 #![allow(
     clippy::cast_possible_wrap,
@@ -12,43 +10,42 @@ use anyhow::Ok;
 use anyhow::{bail, Context, Result};
 use llama_cpp_2::context::params::LlamaContextParams;
 use llama_cpp_2::context::LlamaContext;
-use llama_cpp_2::ggml_time_us;
-use llama_cpp_2::model::params::LlamaModelParams;
 use llama_cpp_2::llama_backend::LlamaBackend;
 use llama_cpp_2::llama_batch::LlamaBatch;
+use llama_cpp_2::model::params::LlamaModelParams;
 use llama_cpp_2::model::AddBos;
 use llama_cpp_2::model::LlamaModel;
 use llama_cpp_2::token::data_array::LlamaTokenDataArray;
 use llama_cpp_2::token::LlamaToken;
-use types::{ModelConfig, ModelManager};
+use llama_cpp_2::ggml_time_us;
 use std::io::Write;
 use std::num::NonZeroU32;
+use types::{LlamaResult, ModelConfig, ModelManager, ModelState};
 
-use std::time::Duration;
 use std::collections::HashMap;
+use std::time::Duration;
 
 pub type TokenCallback = fn(String, LlamaToken, bool) -> Result<()>;
 
 pub mod types;
 
-pub struct LlamaResult {
-    n_tokens: i32,
-    n_decode: i32,
-    duration: Duration,
-    generated_tokens: Vec<LlamaToken>
-}
 
-pub fn load_model(path:String, model_config: ModelConfig, llama_backend: &LlamaBackend) -> Result<LlamaModel> {
-    let params = {
+pub fn load_model(
+    path: String,
+    model_config: ModelConfig,
+    llama_backend: &LlamaBackend,
+) -> Result<LlamaModel> {
+    let init_params = {
         #[cfg(feature = "cublas")]
-        if model_config.use_gpu.unwrap_or(true){
+        if model_config.use_gpu.unwrap_or(true) {
             LlamaModelParams::default().with_n_gpu_layers(1000)
         } else {
             LlamaModelParams::default()
         }
         #[cfg(not(feature = "cublas"))]
-        LlamaModelParams::default()
+        LlamaModelParams::default().with_use_mlock(true)
     };
+    let params = init_params.with_use_mlock(true);
     let model = LlamaModel::load_from_file(llama_backend, path.clone(), &params)
         .with_context(|| format!("failed to load model from {}", path))?;
     Ok(model)
@@ -64,6 +61,7 @@ pub fn load_models(models: Vec<types::ModelDefinition>) -> Result<ModelManager> 
         let model_state = types::ModelState {
             model: llama_model,
             config: model.config,
+            chat_template: model.chat_template,
         };
         let name = model.name.clone();
         loaded_models.insert(name, model_state);
@@ -100,13 +98,14 @@ pub fn generate(
     }
 
     ctx.decode(&mut batch)
-        .with_context(|| "llama_decode() failed")?;
+        .expect("llama_decode() failed");
 
     let mut n_cur = batch.n_tokens();
     let mut n_decode = 0;
 
     let t_main_start = ggml_time_us();
     let mut generated_tokens = Vec::new();
+    let mut generated_tokens_data = Vec::new();
 
     loop {
         let mut is_last = n_cur == n_len; // Keep track of it here for the callback and use loop to save cycles
@@ -117,7 +116,8 @@ pub fn generate(
             is_last = true;
         }
         generated_tokens.push(new_token_id);
-        let token_str = model.token_to_str(new_token_id)?; // We should make EOS a blank string
+        let token_str = model.token_to_str(new_token_id).expect("That UTF8 shit"); // We should make EOS a blank string
+        generated_tokens_data.push(token_str.clone()); //TODO: make that suck less
         if let Some(token_callback) = token_callback {
             token_callback(token_str, new_token_id, is_last)?;
         }
@@ -141,11 +141,50 @@ pub fn generate(
         n_decode: n_decode,
         duration: duration,
         generated_tokens: generated_tokens,
+        generated_tokens_data: generated_tokens_data,
     };
     Ok(llama_result)
 }
 
-pub fn full_run(model: &LlamaModel, backend: &LlamaBackend, prompt: &String, n_len: i32) -> Result<()> {
+pub fn generate_no_callback(
+    model: &ModelState,
+    backend: &LlamaBackend,
+    prompt: &String,
+    n_len: i32
+) -> Result<LlamaResult> {
+    let ctx_params = LlamaContextParams::default()
+        .with_n_ctx(NonZeroU32::new(2048))
+        .with_seed(0);
+
+    let mut ctx = model.model
+        .new_context(&backend, ctx_params)
+        .with_context(|| "unable to create the llama_context")?;
+
+    // tokenize the prompt
+    let tokens_list = model.model
+        .str_to_token(&prompt, AddBos::Always)
+        .with_context(|| format!("failed to tokenize {}", prompt))?;
+
+    let n_cxt = ctx.n_ctx() as i32;
+    let n_kv_req = tokens_list.len() as i32 + (n_len - tokens_list.len() as i32);
+
+    // make sure the KV cache is big enough to hold all the prompt and generated tokens
+    if n_kv_req > n_cxt {
+        bail!(
+            "n_kv_req > n_ctx, the required kv cache size is not big enough either reduce n_len or increase n_ctx"
+        )
+    }
+    let r = generate(&model.model, &mut ctx, tokens_list, n_len, None).expect("failed to generate");
+    Ok(r)
+}
+
+
+pub fn full_run(
+    model: &LlamaModel,
+    backend: &LlamaBackend,
+    prompt: &String,
+    n_len: i32,
+) -> Result<()> {
     let ctx_params = LlamaContextParams::default()
         .with_n_ctx(NonZeroU32::new(2048))
         .with_seed(1234);
@@ -169,16 +208,28 @@ pub fn full_run(model: &LlamaModel, backend: &LlamaBackend, prompt: &String, n_l
 either reduce n_len or increase n_ctx"
         )
     }
-    let result = generate(&model, &mut ctx, tokens_list, n_len, Some(|s, _, is_last| { // Modify the closure to take two arguments
-        print!("{}", s);
-        if is_last {
-            println!();
-        }
-        std::io::stdout().flush()?;
-        Ok(())
-    }))?;
+    let result = generate(
+        &model,
+        &mut ctx,
+        tokens_list,
+        n_len,
+        Some(|s, _, is_last| {
+            // Modify the closure to take two arguments
+            print!("{}", s);
+            if is_last {
+                println!();
+            }
+            std::io::stdout().flush()?;
+            Ok(())
+        }),
+    )?;
     eprintln!("\n");
-    eprintln!("Generated {} tokens in {:.2} s, speed {:.2} t/s\n", result.n_tokens, result.duration.as_secs_f32(), result.n_tokens as f32 / result.duration.as_secs_f32());
+    eprintln!(
+        "Generated {} tokens in {:.2} s, speed {:.2} t/s\n",
+        result.n_tokens,
+        result.duration.as_secs_f32(),
+        result.n_tokens as f32 / result.duration.as_secs_f32()
+    );
     eprintln!("Decoded {} tokens", result.n_decode);
     eprintln!("Generated tokens:");
     for token in result.generated_tokens.iter() {

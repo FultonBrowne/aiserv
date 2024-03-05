@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use shurbai::types::ModelDefinition;
+use shurbai::types::{ChatTemplate, ModelDefinition};
 
 #[derive(Serialize, Deserialize)]
 pub struct StatusMessage{
@@ -36,11 +36,19 @@ pub struct Message {
 }
 
 #[derive(Serialize, Deserialize)]
+pub struct ChoiceObject{
+    pub index: i32,
+    pub message: Message,
+    pub logprobs: serde_json::Value,
+    pub finish_reason: String,
+}
+
+#[derive(Serialize, Deserialize)]
 pub struct ChatCompletionsRequest {
     pub model: String,
     pub messages: Vec<Message>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub max_tokens: Option<usize>,
+    pub max_tokens: Option<i32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub temperature: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -53,5 +61,19 @@ pub struct ChatCompletionsRequest {
 
 #[derive(Serialize, Deserialize)]
 pub struct ChatCompletionsResponse {
-    pub choices: Vec<Message>,
+    pub choices: Vec<ChoiceObject>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ModelsResponseOutput {
+    pub data: Vec<ModelResponse>,
+}
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ModelResponse {
+    pub id: String,
+    pub object: String,
+    pub max_tokens: Option<i32>,
+    pub name: String,
+    pub owned_by: String,
+    // Include other relevant fields as per the API documentation.
 }

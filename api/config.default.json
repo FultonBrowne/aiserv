@@ -16,6 +16,13 @@
         "num_predict": 128,
         "top_k": 40,
         "top_p": 0.9
+      },
+      "chat_template": {
+        "user_template": "User: {content}\n",
+        "system_template": "System: {content}\n",
+        "assistant_template": "Assistant: {content}\n",
+        "assistant_prompt_template": "Assistant:",
+        "stops": ["User:", "System:", "Assistant:"]
       }
     }]
 }
