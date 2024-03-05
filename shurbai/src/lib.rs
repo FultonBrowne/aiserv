@@ -18,14 +18,14 @@ use llama_cpp_2::model::LlamaModel;
 use llama_cpp_2::token::data_array::LlamaTokenDataArray;
 use llama_cpp_2::token::LlamaToken;
 use llama_cpp_2::ggml_time_us;
-use std::io::Write;
+
 use std::num::NonZeroU32;
 use types::{LlamaResult, ModelConfig, ModelManager, ModelState};
 
 use std::collections::HashMap;
 use std::time::Duration;
 
-pub type TokenCallback = fn(String, LlamaToken, bool) -> Result<()>;
+pub type TokenCallback = Box<dyn Fn(String, bool)>;
 
 pub mod types;
 
@@ -88,6 +88,7 @@ pub fn generate(
     tokens_list: Vec<LlamaToken>, // Do we need this argument? what are logits?
     n_len: i32,
     token_callback: Option<TokenCallback>,
+    stops: Option<&Vec<String>>
 ) -> Result<LlamaResult> {
     let mut batch = LlamaBatch::new(512, 1);
     let last_index: i32 = (tokens_list.len() - 1) as i32;
@@ -115,11 +116,20 @@ pub fn generate(
         if new_token_id == model.token_eos() {
             is_last = true;
         }
-        generated_tokens.push(new_token_id);
         let token_str = model.token_to_str(new_token_id).expect("That UTF8 shit"); // We should make EOS a blank string
+        if let Some(stops) = stops {
+            if stops.iter().any(|stop| token_str.eq(stop)) {
+                is_last = true;
+            }
+        }
+        if is_last{
+            break;
+        } //TODO: This will be re done
+        generated_tokens.push(new_token_id);
         generated_tokens_data.push(token_str.clone()); //TODO: make that suck less
-        if let Some(token_callback) = token_callback {
-            token_callback(token_str, new_token_id, is_last)?;
+
+        if let Some(ref token_callback) = token_callback {
+            token_callback(token_str, is_last);
         }
         if is_last {
             break;
@@ -146,11 +156,13 @@ pub fn generate(
     Ok(llama_result)
 }
 
-pub fn generate_no_callback(
+pub fn pretty_generate(
     model: &ModelState,
     backend: &LlamaBackend,
     prompt: &String,
-    n_len: i32
+    n_len: i32,
+    stops: &Vec<String>,
+    token_callback: Option<TokenCallback>
 ) -> Result<LlamaResult> {
     let ctx_params = LlamaContextParams::default()
         .with_n_ctx(NonZeroU32::new(2048))
@@ -174,68 +186,9 @@ pub fn generate_no_callback(
             "n_kv_req > n_ctx, the required kv cache size is not big enough either reduce n_len or increase n_ctx"
         )
     }
-    let r = generate(&model.model, &mut ctx, tokens_list, n_len, None).expect("failed to generate");
+    let r = generate(&model.model, &mut ctx, tokens_list, n_len, token_callback, Some(stops)).expect("failed to generate");
     Ok(r)
 }
 
 
-pub fn full_run(
-    model: &LlamaModel,
-    backend: &LlamaBackend,
-    prompt: &String,
-    n_len: i32,
-) -> Result<()> {
-    let ctx_params = LlamaContextParams::default()
-        .with_n_ctx(NonZeroU32::new(2048))
-        .with_seed(1234);
 
-    let mut ctx = model
-        .new_context(&backend, ctx_params)
-        .with_context(|| "unable to create the llama_context")?;
-
-    // tokenize the prompt
-    let tokens_list = model
-        .str_to_token(&prompt, AddBos::Always)
-        .with_context(|| format!("failed to tokenize {}", prompt))?;
-
-    let n_cxt = ctx.n_ctx() as i32;
-    let n_kv_req = tokens_list.len() as i32 + (n_len - tokens_list.len() as i32);
-
-    // make sure the KV cache is big enough to hold all the prompt and generated tokens
-    if n_kv_req > n_cxt {
-        bail!(
-            "n_kv_req > n_ctx, the required kv cache size is not big enough
-either reduce n_len or increase n_ctx"
-        )
-    }
-    let result = generate(
-        &model,
-        &mut ctx,
-        tokens_list,
-        n_len,
-        Some(|s, _, is_last| {
-            // Modify the closure to take two arguments
-            print!("{}", s);
-            if is_last {
-                println!();
-            }
-            std::io::stdout().flush()?;
-            Ok(())
-        }),
-    )?;
-    eprintln!("\n");
-    eprintln!(
-        "Generated {} tokens in {:.2} s, speed {:.2} t/s\n",
-        result.n_tokens,
-        result.duration.as_secs_f32(),
-        result.n_tokens as f32 / result.duration.as_secs_f32()
-    );
-    eprintln!("Decoded {} tokens", result.n_decode);
-    eprintln!("Generated tokens:");
-    for token in result.generated_tokens.iter() {
-        let token_str = model.token_to_str(*token)?;
-        print!("{} ", token_str);
-    }
-    println!();
-    Ok(())
-}

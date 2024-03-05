@@ -22,7 +22,7 @@
         "system_template": "System: {content}\n",
         "assistant_template": "Assistant: {content}\n",
         "assistant_prompt_template": "Assistant:",
-        "stops": ["User:", "System:", "Assistant:"]
+        "stops": ["User", "System", "Assistant"]
       }
     }]
 }
