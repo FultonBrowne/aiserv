@@ -29,6 +29,7 @@ use std::time::Duration;
 pub type TokenCallback = Box<dyn Fn(String, bool)>;
 
 pub mod types;
+mod grammar;
 
 
 pub fn load_model(
@@ -88,7 +89,8 @@ pub fn generate(
     tokens_list: Vec<LlamaToken>, // Do we need this argument? what are logits?
     n_len: i32,
     token_callback: Option<TokenCallback>,
-    stops: Option<&Vec<String>>
+    stops: Option<&Vec<String>>,
+    json_format: bool
 ) -> Result<LlamaResult> {
     let mut batch = LlamaBatch::new(1024, 1);
     let last_index: i32 = (tokens_list.len() - 1) as i32;
@@ -107,20 +109,32 @@ pub fn generate(
     let t_main_start = ggml_time_us();
     let mut generated_tokens = Vec::new();
     let mut generated_tokens_data = Vec::new();
-
+    let mut grammar = grammar::load_grammar();
     loop {
         let mut is_last = n_cur == n_len; // Keep track of it here for the callback and use loop to save cycles
         let candidates = ctx.candidates_ith(batch.n_tokens() - 1);
         let mut candidates_p = LlamaTokenDataArray::from_iter(candidates, false);
-        ctx.sample_temp(&mut candidates_p, 0.1); //TODO: make this a parameter with the model config object
-        //ctx.sample_top_p(&mut candidates_p, 0.1, 128);
-        ctx.sample_top_k(&mut candidates_p, 20, 128);
-        ctx.sample_typical(&mut candidates_p, 1.1, 128);
+        //let sample = Sampler::new(candidates_p).with_temperature(0.1);
+        //.with_grammar(&mut grammar);
+        
+        ctx.sample_temp(&mut candidates_p, 0.2); //TODO: make this a parameter with the model config object
+        // ctx.sample_typical(&mut candidates_p, 1.1, 1);
+        if json_format {
+            ctx.sample_grammar(&mut candidates_p, &mut grammar);
+        }
+        ctx.sample_token_softmax(&mut candidates_p);
+        ctx.sample_top_k(&mut candidates_p, 10, 32);
+        ctx.sample_top_p(&mut candidates_p, 0.2, 32);
         let new_token_id = ctx.sample_token_greedy(candidates_p);
+        if json_format {
+            ctx.grammar_accept_token(&mut grammar, new_token_id);
+        }
+        //let new_token_id = ctx.sample( sample);
         if new_token_id == model.token_eos() {
             is_last = true;
         }
         let token_str = model.token_to_str(new_token_id).expect("That UTF8 shit"); // We should make EOS a blank string
+        print!("{}", token_str);
         if let Some(stops) = stops {
             if stops.iter().any(|stop| token_str.eq(stop)) {
                 is_last = true;
@@ -167,7 +181,8 @@ pub fn pretty_generate(
     prompt: &String,
     n_len: i32,
     stops: &Vec<String>,
-    token_callback: Option<TokenCallback>
+    token_callback: Option<TokenCallback>,
+    json_format: Option<bool>,
 ) -> Result<LlamaResult> {
     let mut rng = rand::thread_rng();
     let random_number: u32 = rng.gen();
@@ -194,7 +209,7 @@ pub fn pretty_generate(
             "n_kv_req > n_ctx, the required kv cache size is not big enough either reduce n_len or increase n_ctx"
         )
     }
-    let r = generate(&model.model, &mut ctx, tokens_list, n_len, token_callback, Some(stops)).expect("failed to generate");
+    let r = generate(&model.model, &mut ctx, tokens_list, n_len, token_callback, Some(stops), json_format.unwrap_or(false)).expect("failed to generate");
     Ok(r)
 }
 

@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::{de, Deserialize, Serialize};
 use serde_json::Value;
 use shurbai::types::ModelDefinition;
 
@@ -43,6 +43,11 @@ pub struct ChoiceObject{
     pub logprobs: serde_json::Value,
     pub finish_reason: String,
 }
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ResponseFormat{
+    #[serde(rename = "type")]
+    pub type_str: String,
+}
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ChatCompletionsRequest {
@@ -58,6 +63,8 @@ pub struct ChatCompletionsRequest {
     pub tools: Option<Vec<FunctionDefinition>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tool_choice: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub response_format: Option<ResponseFormat>,
 }
 
 #[derive(Serialize, Deserialize, Clone)]

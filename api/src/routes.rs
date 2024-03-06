@@ -58,16 +58,18 @@ pub async fn chat_completion(
     let prompt = prompt::generate_chat_prompt(&request_body.messages, &model.chat_template)
         .expect("failed to generate prompt");
     println!("Generated prompt: {:?}", prompt);
+    let json_format = !request_body.response_format.is_none();
     if request_body.stream.unwrap_or(false) {
-        return chat_stream(model_name, &model_manager, prompt, &request_body).into_response();
+        return chat_stream(model_name, &model_manager, prompt, &request_body, json_format).into_response();
     }
-    return chat_no_stream(model, &model_manager, prompt, &request_body).into_response()
+    return chat_no_stream(model, &model_manager, prompt, &request_body, json_format).into_response()
 }
 fn chat_stream(
     model_name: String,
     model_manager: &Arc<ModelManager>,
     prompt: String,
     request: &ChatCompletionsRequest,
+    json_format: bool,
 ) -> impl IntoResponse {
     let (tx, rx) = mpsc::channel::<String>(32);
     let tx = Arc::new(Mutex::new(tx)); // Wrap tx in Arc<Mutex<T>>
@@ -137,6 +139,7 @@ fn chat_stream(
                     }
                 });
             })),
+            Some(json_format)
         )
         .expect("failed to generate response");
         println!("Generated response: {:?}", g.generated_tokens_data);
@@ -150,6 +153,7 @@ fn chat_no_stream(
     model_manager: &Arc<ModelManager>,
     prompt: String,
     request_body: &ChatCompletionsRequest,
+    json_format: bool
 ) -> impl IntoResponse {
     let g = pretty_generate(
         model,
@@ -158,6 +162,7 @@ fn chat_no_stream(
         request_body.max_tokens.unwrap_or(32),
         &model.chat_template.stops,
         None,
+        Some(json_format),
     )
     .expect("failed to generate response");
     println!("Generated response: {:?}", g.generated_tokens_data);

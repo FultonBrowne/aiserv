@@ -1,8 +1,8 @@
 {
   "models": [
     {
-      "path": "../models/llama2/bin",
-      "name": "llama2",
+      "path": "../models/phi.gguf",
+      "name": "phi",
       "config": {
         "mirostat": 0,
         "mirostat_eta": 0.1,
@@ -21,8 +21,34 @@
         "user_template": "User: {content}\n",
         "system_template": "System: {content}\n",
         "assistant_template": "Assistant: {content}\n",
-        "assistant_prompt_template": "Assistant:",
+        "assistant_prompt_template": "Assistant: ",
         "stops": ["User", "System", "Assistant"]
       }
-    }]
+    },
+    {
+      "path": "../models/llama.gguf",
+      "name": "llama",
+      "config": {
+        "mirostat": 0,
+        "mirostat_eta": 0.1,
+        "mirostat_tau": 5.0,
+        "num_ctx": 4096,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "temperature": 0.8,
+        "seed": 0,
+        "tfs_z": 1.0,
+        "num_predict": 128,
+        "top_k": 40,
+        "top_p": 0.9
+      },
+      "chat_template": {
+        "user_template": "[INST] {content}\n\n",
+        "system_template": "[INST] <<SYS>> \n {content} <</SYS>> \n\n",
+        "assistant_template": "[/INST]{content}\n",
+        "assistant_prompt_template": "[/INST] ",
+        "stops": ["INST", "<<SYS>>", "<</SYS>>"]
+      }
+    }
+    ]
 }
