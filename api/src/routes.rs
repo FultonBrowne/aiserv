@@ -1,19 +1,13 @@
-use core::time;
-use std::convert::Infallible;
-use std::pin::Pin;
-use std::{io::Write, sync::Arc};
 
-use axum::body::Body;
-use axum::http::request;
-use axum::response::Response;
+use std::{fmt::format, io::Write, sync::Arc};
+
 use axum_streams::StreamBodyAs;
-use futures::Stream;
-use futures::{stream, StreamExt, TryStreamExt};
+
 use tokio::task;
 use tokio_stream::wrappers::ReceiverStream;
 
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
-use shurbai::{pretty_generate, types::ModelManager, TokenCallback};
+use shurbai::{pretty_generate, types::ModelManager};
 
 use tokio::sync::{mpsc, Mutex};
 
@@ -54,6 +48,7 @@ pub async fn chat_completion(
     State(model_manager): State<Arc<ModelManager>>,
     Json(request_body): Json<ChatCompletionsRequest>,
 ) -> impl IntoResponse {
+    println!("Request body: {:?}", request_body);
     let model_name = request_body.model.clone();
     if !model_manager.models.contains_key(&model_name) {
         //return (StatusCode::NOT_FOUND, Json(None));
@@ -64,10 +59,9 @@ pub async fn chat_completion(
         .expect("failed to generate prompt");
     println!("Generated prompt: {:?}", prompt);
     if request_body.stream.unwrap_or(false) {
-        return chat_stream(model_name, &model_manager, prompt, &request_body);
+        return chat_stream(model_name, &model_manager, prompt, &request_body).into_response();
     }
-    return chat_stream(model_name, &model_manager, prompt, &request_body);
-    //return chat_no_stream(model, &model_manager, prompt, &request_body)
+    return chat_no_stream(model, &model_manager, prompt, &request_body).into_response()
 }
 fn chat_stream(
     model_name: String,
@@ -75,11 +69,34 @@ fn chat_stream(
     prompt: String,
     request: &ChatCompletionsRequest,
 ) -> impl IntoResponse {
-    let (tx, mut rx) = mpsc::channel::<StreamResponseChunk>(32);
+    let (tx, rx) = mpsc::channel::<String>(32);
     let tx = Arc::new(Mutex::new(tx)); // Wrap tx in Arc<Mutex<T>>
     let model_manager_clone = Arc::clone(model_manager);
     let request_body_clone = request.clone();
+    
     tokio::spawn(async move {
+        let tx_clone = tx.clone();
+                task::spawn(async move {
+                    let init_assistant = StreamResponseChunk {
+                        id: "chatcmpl-123".to_string(),
+                        created: 1694268190, // TODO: make it real
+                        system_fingerprint: "fp_44709d6fcb".to_string(),
+                        object: "chat.completion.chunk".to_string(),
+                        model: "phi".to_string(),
+                        choices: vec![StreamChoice {
+                            index: 0,
+                            delta: ChoiceDelta {
+                                role: Some("assistant".to_string()),
+                                content: Some("".to_string()),
+                                tool_call: None,
+                            },
+                            logprobs: None,
+                            finish_reason: None,
+                        }],
+                    };
+                    let init_str = serde_json::to_string(&init_assistant).unwrap();
+                    let _ = tx_clone.lock().await.send(format!("data: {} \n\n", init_str)).await;
+                });
         let model = model_manager_clone.models.get(&model_name).expect("Model not found");
         let request_body = request_body_clone;
         let g = pretty_generate(
@@ -91,37 +108,41 @@ fn chat_stream(
             Some(Box::new(move |s, is_last| {
                 // Modify the closure to take two arguments
                 let response_chunk = StreamResponseChunk {
-                    id: "Teehee".to_string(),
-                    created: 0,
-                    object: "stream".to_string(),
+                    id: "chatcmpl-123".to_string(),
+                    created: 1694268190, // TODO: make it real
+                    system_fingerprint: "fp_44709d6fcb".to_string(),
+                    object: "chat.completion.chunk".to_string(),
                     model: "phi".to_string(),
                     choices: vec![StreamChoice {
                         index: 0,
                         delta: ChoiceDelta {
-                            role: Some("assistant".to_string()),
+                            role: None,
                             content: Some(s.clone()),
                             tool_call: None,
                         },
                         logprobs: None,
-                        finish_reason: Some(if is_last {
-                            "complete".to_string()
+                        finish_reason: if is_last {
+                            Some("complete".to_string())
                         } else {
-                            "incomplete".to_string()
-                        }),
+                            None
+                        },
                     }],
                 };
+                let json_str = serde_json::to_string(&response_chunk).expect("failed to serialize response");
                 let tx_clone = tx.clone();
                 task::spawn(async move {
-                    let _ = tx_clone.lock().await.send(response_chunk).await;
+                    let _ = tx_clone.lock().await.send(format!("data: {} \n\n", json_str)).await;
+                    if is_last {
+                        let _ = tx_clone.lock().await.send("data: [DONE]\n\n".to_string()).await;
+                    }
                 });
-                std::io::stdout().flush().unwrap();
             })),
         )
         .expect("failed to generate response");
         println!("Generated response: {:?}", g.generated_tokens_data);
     });
     let rx_stream = ReceiverStream::new(rx);
-    StreamBodyAs::json_nl(rx_stream)
+    StreamBodyAs::text(rx_stream)
 }
 
 fn chat_no_stream(
@@ -152,11 +173,6 @@ fn chat_no_stream(
             finish_reason: "complete".to_string(),
         }],
     };
-    let json = serde_json::to_string(&r).unwrap();
-    // Create a Response<Body> object
-    let response = Response::builder()
-        .status(StatusCode::OK)
-        .body(Body::from(json))
-        .unwrap();
+    let response = Json(r);
     response
 }

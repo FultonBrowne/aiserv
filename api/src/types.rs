@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use shurbai::types::{ChatTemplate, ModelDefinition};
+use shurbai::types::ModelDefinition;
 
 #[derive(Serialize, Deserialize)]
 pub struct StatusMessage{
@@ -44,7 +44,7 @@ pub struct ChoiceObject{
     pub finish_reason: String,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ChatCompletionsRequest {
     pub model: String,
     pub messages: Vec<Message>,
@@ -83,6 +83,7 @@ pub struct ModelResponse {
 pub struct StreamResponseChunk {
     pub id: String,
     pub object: String,
+    pub system_fingerprint: String,
     pub created: u64,
     pub model: String,
     pub choices: Vec<StreamChoice>,

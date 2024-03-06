@@ -114,15 +114,20 @@ pub fn generate(
         let candidates_p = LlamaTokenDataArray::from_iter(candidates, false);
         let new_token_id = ctx.sample_token_greedy(candidates_p);
         if new_token_id == model.token_eos() {
+            println!("EOS token found");
             is_last = true;
         }
         let token_str = model.token_to_str(new_token_id).expect("That UTF8 shit"); // We should make EOS a blank string
+        println!("{}", token_str);
         if let Some(stops) = stops {
             if stops.iter().any(|stop| token_str.eq(stop)) {
                 is_last = true;
             }
         }
         if is_last{
+            if let Some(ref token_callback) = token_callback {
+                token_callback("".to_string(), is_last);
+            }
             break;
         } //TODO: This will be re done
         generated_tokens.push(new_token_id);
