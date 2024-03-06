@@ -18,9 +18,10 @@ use llama_cpp_2::model::LlamaModel;
 use llama_cpp_2::token::data_array::LlamaTokenDataArray;
 use llama_cpp_2::token::LlamaToken;
 use llama_cpp_2::ggml_time_us;
+use rand::Rng;
 
 use std::num::NonZeroU32;
-use types::{LlamaResult, ModelConfig, ModelManager, ModelState};
+use types::{LlamaResult, ModelManager, ModelState};
 
 use std::collections::HashMap;
 use std::time::Duration;
@@ -32,7 +33,6 @@ pub mod types;
 
 pub fn load_model(
     path: String,
-    model_config: ModelConfig,
     llama_backend: &LlamaBackend,
 ) -> Result<LlamaModel> {
     let init_params = {
@@ -56,7 +56,7 @@ pub fn load_models(models: Vec<types::ModelDefinition>) -> Result<ModelManager> 
     //let arc_llama_backend = Arc::new(llama_backend);
     let mut loaded_models = HashMap::new();
     for model in models {
-        let llama_model = load_model(model.path, model.config.clone(), &llama_backend)
+        let llama_model = load_model(model.path, &llama_backend)
             .expect("failed to load model");
         let model_state = types::ModelState {
             model: llama_model,
@@ -90,7 +90,7 @@ pub fn generate(
     token_callback: Option<TokenCallback>,
     stops: Option<&Vec<String>>
 ) -> Result<LlamaResult> {
-    let mut batch = LlamaBatch::new(512, 1);
+    let mut batch = LlamaBatch::new(1024, 1);
     let last_index: i32 = (tokens_list.len() - 1) as i32;
     for (i, token) in (0_i32..).zip(tokens_list.into_iter()) {
         // llama_decode will output logits only for the last token of the prompt
@@ -111,14 +111,16 @@ pub fn generate(
     loop {
         let mut is_last = n_cur == n_len; // Keep track of it here for the callback and use loop to save cycles
         let candidates = ctx.candidates_ith(batch.n_tokens() - 1);
-        let candidates_p = LlamaTokenDataArray::from_iter(candidates, false);
+        let mut candidates_p = LlamaTokenDataArray::from_iter(candidates, false);
+        ctx.sample_temp(&mut candidates_p, 0.1); //TODO: make this a parameter with the model config object
+        //ctx.sample_top_p(&mut candidates_p, 0.1, 128);
+        ctx.sample_top_k(&mut candidates_p, 20, 128);
+        ctx.sample_typical(&mut candidates_p, 1.1, 128);
         let new_token_id = ctx.sample_token_greedy(candidates_p);
         if new_token_id == model.token_eos() {
-            println!("EOS token found");
             is_last = true;
         }
         let token_str = model.token_to_str(new_token_id).expect("That UTF8 shit"); // We should make EOS a blank string
-        println!("{}", token_str);
         if let Some(stops) = stops {
             if stops.iter().any(|stop| token_str.eq(stop)) {
                 is_last = true;
@@ -136,9 +138,7 @@ pub fn generate(
         if let Some(ref token_callback) = token_callback {
             token_callback(token_str, is_last);
         }
-        if is_last {
-            break;
-        }
+
         batch.clear();
         batch.add(new_token_id, n_cur, &[0], true)?;
 
@@ -169,9 +169,12 @@ pub fn pretty_generate(
     stops: &Vec<String>,
     token_callback: Option<TokenCallback>
 ) -> Result<LlamaResult> {
+    let mut rng = rand::thread_rng();
+    let random_number: u32 = rng.gen();
+
     let ctx_params = LlamaContextParams::default()
-        .with_n_ctx(NonZeroU32::new(2048))
-        .with_seed(0);
+        .with_n_ctx(NonZeroU32::new(model.config.num_ctx.unwrap_or(2048) as u32))
+        .with_seed(random_number);
 
     let mut ctx = model.model
         .new_context(&backend, ctx_params)

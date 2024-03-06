@@ -1,5 +1,5 @@
 
-use std::{fmt::format, io::Write, sync::Arc};
+use std::sync::Arc;
 
 use axum_streams::StreamBodyAs;
 
