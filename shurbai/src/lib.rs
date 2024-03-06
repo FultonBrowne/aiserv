@@ -114,18 +114,15 @@ pub fn generate(
         let mut is_last = n_cur == n_len; // Keep track of it here for the callback and use loop to save cycles
         let candidates = ctx.candidates_ith(batch.n_tokens() - 1);
         let mut candidates_p = LlamaTokenDataArray::from_iter(candidates, false);
-        //let sample = Sampler::new(candidates_p).with_temperature(0.1);
-        //.with_grammar(&mut grammar);
-        
+
         ctx.sample_temp(&mut candidates_p, 0.2); //TODO: make this a parameter with the model config object
-        // ctx.sample_typical(&mut candidates_p, 1.1, 1);
         if json_format {
             ctx.sample_grammar(&mut candidates_p, &mut grammar);
         }
         ctx.sample_token_softmax(&mut candidates_p);
         ctx.sample_top_k(&mut candidates_p, 10, 32);
         ctx.sample_top_p(&mut candidates_p, 0.2, 32);
-        let new_token_id = ctx.sample_token_greedy(candidates_p);
+        let new_token_id = candidates_p.data[0].id();
         if json_format {
             ctx.grammar_accept_token(&mut grammar, new_token_id);
         }
