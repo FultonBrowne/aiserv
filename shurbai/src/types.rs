@@ -2,7 +2,6 @@ use llama_cpp_2::{llama_backend::LlamaBackend, model::LlamaModel, token::LlamaTo
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, time::Duration};
 
-
 pub struct LlamaResult {
     pub n_tokens: i32,
     pub n_decode: i32,
@@ -11,7 +10,7 @@ pub struct LlamaResult {
     pub generated_tokens_data: Vec<String>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ModelDefinition {
     pub path: String,
     pub name: String,
@@ -19,7 +18,7 @@ pub struct ModelDefinition {
     pub chat_template: ChatTemplate,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 /// Represents the configuration options for a model.
 pub struct ModelConfig {
     pub mirostat: Option<i32>,       // default: 0
@@ -41,7 +40,7 @@ pub struct ModelConfig {
     pub top_p: Option<f32>,          // default: 0.9
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ChatTemplate {
     pub user_template: String,
     pub system_template: String,
@@ -78,7 +77,6 @@ pub struct ModelState {
     pub config: ModelConfig,
     pub chat_template: ChatTemplate,
 }
-
 
 pub struct ModelManager {
     pub backend: LlamaBackend,

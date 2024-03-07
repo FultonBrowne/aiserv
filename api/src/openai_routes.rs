@@ -1,3 +1,5 @@
+/// OpenAI API routes
+/// These aren't the real API routes for this server, it's really just a demo and honestly is a little messy
 use std::{sync::Arc, vec};
 
 use axum_streams::StreamBodyAs;
@@ -11,9 +13,12 @@ use shurbai::{pretty_generate, types::ModelManager};
 use tokio::sync::{mpsc, Mutex};
 
 use crate::{
-    prompt, tools::{self}, types::{
-        ChatCompletionsRequest, ChatCompletionsResponse, ChoiceDelta, ChoiceObject, FunctionCall, Message, ModelResponse, ModelsResponseOutput, StatusMessage, StreamChoice, StreamResponseChunk
-    }
+    prompt, tools,
+    types::{
+        ChatCompletionsRequest, ChatCompletionsResponse, ChoiceDelta, ChoiceObject, FunctionCall,
+        Message, ModelResponse, ModelsResponseOutput, StatusMessage, StreamChoice,
+        StreamResponseChunk,
+    },
 };
 
 pub async fn index() -> (StatusCode, Json<StatusMessage>) {
@@ -45,7 +50,10 @@ pub async fn chat_completion(
     State(model_manager): State<Arc<ModelManager>>,
     Json(request_body): Json<ChatCompletionsRequest>,
 ) -> impl IntoResponse {
-    println!("Request body: {:}", serde_json::to_string_pretty(&request_body).unwrap());
+    println!(
+        "Request body: {:}",
+        serde_json::to_string_pretty(&request_body).unwrap()
+    );
     let model_name = request_body.model.clone();
     if !model_manager.models.contains_key(&model_name) {
         //return (StatusCode::NOT_FOUND, Json(None));
@@ -53,7 +61,7 @@ pub async fn chat_completion(
     }
     let mut function_calls = vec![];
     if request_body.function_call.is_some() {
-        function_calls.extend(tools::predict_tool_calls());
+        // function_calls.extend(tools::predict_tool_calls());
     }
     let model = model_manager.models.get(&model_name).unwrap();
     let prompt = prompt::generate_chat_prompt(&request_body.messages, &model.chat_template)
@@ -70,9 +78,17 @@ pub async fn chat_completion(
         )
         .into_response();
     }
-    return chat_no_stream(model, &model_manager, prompt, &request_body, json_format, function_calls)
-        .into_response();
+    return chat_no_stream(
+        model,
+        &model_manager,
+        prompt,
+        &request_body,
+        json_format,
+        function_calls,
+    )
+    .into_response();
 }
+
 fn chat_stream(
     model_name: String,
     model_manager: &Arc<ModelManager>,
@@ -101,7 +117,7 @@ fn chat_stream(
                     delta: ChoiceDelta {
                         role: Some("assistant".to_string()),
                         content: None,
-                        function_call: function_calls.get(0).cloned()
+                        function_call: function_calls.get(0).cloned(),
                     },
                     logprobs: None,
                     finish_reason: None,

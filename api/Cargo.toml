@@ -15,3 +15,4 @@ shurbai = { path = "../shurbai" }
 futures = "0.3.30"
 tokio-stream = "0.1.14"
 axum-streams = { version = "0.12", features=["json", "text"] }
+chrono = "0.4.35"

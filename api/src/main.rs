@@ -1,13 +1,17 @@
 mod openai_routes;
-mod types;
 mod prompt;
+mod routes;
 mod tools;
+mod types;
+mod utils;
 use std::sync::Arc;
 
-use axum::{routing::{get, post}, Router};
-use shurbai::load_models;
-
 use crate::types::Config;
+use axum::{
+    routing::{get, post},
+    Router,
+};
+use shurbai::load_models;
 
 #[tokio::main]
 async fn main() {
@@ -22,6 +26,9 @@ async fn main() {
         .route("/", get(openai_routes::index))
         .route("/v1/models", get(openai_routes::list_models))
         .route("/v1/chat/completions", post(openai_routes::chat_completion))
+        .route("/models", get(routes::list_models))
+        .route("/generate", post(routes::generate))
+        .route("/generate/chat", post(routes::chat_generate))
         .with_state(model_manager);
 
     // run our app with hyper, listening globally on port 8080
