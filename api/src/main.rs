@@ -1,4 +1,3 @@
-mod openai_routes;
 mod prompt;
 mod routes;
 mod tools;
@@ -23,9 +22,6 @@ async fn main() {
     let model_manager = Arc::new(load_models(config.models).expect("failed to load models"));
     // build our application with a single route
     let app = Router::new()
-        .route("/", get(openai_routes::index))
-        .route("/v1/models", get(openai_routes::list_models))
-        .route("/v1/chat/completions", post(openai_routes::chat_completion))
         .route("/models", get(routes::list_models))
         .route("/generate", post(routes::generate))
         .route("/generate/chat", post(routes::chat_generate))

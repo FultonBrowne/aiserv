@@ -9,8 +9,8 @@ use tokio_stream::wrappers::ReceiverStream;
 use crate::{
     get_model, prompt,
     types::{
-        ChatCompletionsRequest, ChatGenerateCall, ChatGenerateResponse, ChatGenerateResponseChuck,
-        ErrorResponse, GenerateCall, GenerateResponse, GeneratreResponseChuck, ListModelsResponse,
+        ChatGenerateCall, ChatGenerateResponse, ChatGenerateResponseChuck, ErrorResponse,
+        GenerateCall, GenerateResponse, GeneratreResponseChuck, ListModelsResponse,
         ModelListObject, ServerMetadata,
     },
     utils::{self, has_model},
@@ -166,7 +166,7 @@ pub async fn list_models(State(model_manager): State<Arc<ModelManager>>) -> impl
         .iter()
         .map(|(name, _model)| ModelListObject {
             name: name.to_string(),
-            type_str: "model".clone().to_string(),
+            type_str: "model".to_string(),
         })
         .collect();
     let r = ListModelsResponse {

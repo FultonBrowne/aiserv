@@ -4,8 +4,6 @@ use serde::Serialize;
 use shurbai::types::ModelManager;
 use tokio::sync::{mpsc::Sender, Mutex};
 
-use crate::types::{GeneratreResponseChuck, ServerMetadata};
-
 pub fn has_model(model_manager: &ModelManager, model_name: &String) -> bool {
     model_manager.models.contains_key(model_name)
 }
