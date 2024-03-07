@@ -16,7 +16,7 @@ use crate::{
     prompt, tools,
     types::{
         ChatCompletionsRequest, ChatCompletionsResponse, ChoiceDelta, ChoiceObject, FunctionCall,
-        Message, ModelResponse, ModelsResponseOutput, StatusMessage, StreamChoice,
+        ModelResponse, ModelsResponseOutput, OpenAiMessage, StatusMessage, StreamChoice,
         StreamResponseChunk,
     },
 };
@@ -64,7 +64,7 @@ pub async fn chat_completion(
         // function_calls.extend(tools::predict_tool_calls());
     }
     let model = model_manager.models.get(&model_name).unwrap();
-    let prompt = prompt::generate_chat_prompt(&request_body.messages, &model.chat_template)
+    let prompt = prompt::generate_oai_chat_prompt(&request_body.messages, &model.chat_template)
         .expect("failed to generate prompt");
     let json_format = !request_body.response_format.is_none();
     if request_body.stream.unwrap_or(false) {
@@ -214,7 +214,7 @@ fn chat_no_stream(
     let r = ChatCompletionsResponse {
         choices: vec![ChoiceObject {
             index: 0,
-            message: Message {
+            message: OpenAiMessage {
                 role: "assistant".to_string(),
                 content: g.generated_tokens_data.concat(),
                 function_call: None,

@@ -48,7 +48,18 @@ pub struct GenerateCall {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct ChatGenerateCall {}
+pub struct Message {
+    pub role: String,
+    pub content: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ChatGenerateCall {
+    pub model: String,
+    pub messages: Vec<Message>,
+    pub stream: Option<bool>,
+    pub generate_params: Option<LlmParams>,
+}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct GenerateResponse {
@@ -60,7 +71,13 @@ pub struct GenerateResponse {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct ChatGenerateResponse {}
+pub struct ChatGenerateResponse {
+    pub meta: ServerMetadata,
+    pub model: String,
+    pub response: String,
+    pub took: u128,
+    pub halt_reason: Option<String>,
+}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct GeneratreResponseChuck {
@@ -71,7 +88,13 @@ pub struct GeneratreResponseChuck {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct ChatGenerateResponseChuck {}
+pub struct ChatGenerateResponseChuck {
+    pub meta: ServerMetadata,
+    pub token_str: String,
+    pub role: String,
+    pub model: String,
+    pub halt_reason: Option<String>,
+}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ModelListObject {
@@ -118,7 +141,7 @@ pub struct FunctionCall {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct Message {
+pub struct OpenAiMessage {
     pub role: String,
     pub content: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -128,7 +151,7 @@ pub struct Message {
 #[derive(Serialize, Deserialize, Clone)]
 pub struct ChoiceObject {
     pub index: i32,
-    pub message: Message,
+    pub message: OpenAiMessage,
     pub logprobs: serde_json::Value,
     pub finish_reason: String,
 }
@@ -141,7 +164,7 @@ pub struct ResponseFormat {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ChatCompletionsRequest {
     pub model: String,
-    pub messages: Vec<Message>,
+    pub messages: Vec<OpenAiMessage>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub max_tokens: Option<i32>,
     #[serde(skip_serializing_if = "Option::is_none")]
