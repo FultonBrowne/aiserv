@@ -1,6 +1,7 @@
-mod routes;
+mod openai_routes;
 mod types;
 mod prompt;
+mod tools;
 use std::sync::Arc;
 
 use axum::{routing::{get, post}, Router};
@@ -18,9 +19,9 @@ async fn main() {
     let model_manager = Arc::new(load_models(config.models).expect("failed to load models"));
     // build our application with a single route
     let app = Router::new()
-        .route("/", get(routes::index))
-        .route("/v1/models", get(routes::list_models))
-        .route("/v1/chat/completions", post(routes::chat_completion))
+        .route("/", get(openai_routes::index))
+        .route("/v1/models", get(openai_routes::list_models))
+        .route("/v1/chat/completions", post(openai_routes::chat_completion))
         .with_state(model_manager);
 
     // run our app with hyper, listening globally on port 8080

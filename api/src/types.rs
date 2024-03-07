@@ -1,4 +1,4 @@
-use serde::{de, Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use shurbai::types::ModelDefinition;
 
@@ -22,6 +22,10 @@ pub struct FunctionDefinition {
     pub parameters: serde_json::Value,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct FunctionDefContainer {
+    pub function: FunctionDefinition,
+}
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct FunctionCall {
     pub name: String,
@@ -60,7 +64,11 @@ pub struct ChatCompletionsRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub stream: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub tools: Option<Vec<FunctionDefinition>>,
+    pub tools: Option<Vec<FunctionDefContainer>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub functions: Option<Vec<FunctionDefinition>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub function_call: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tool_choice: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -111,6 +119,6 @@ pub struct ChoiceDelta {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub role: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub tool_call: Option<FunctionCall>,
+    pub function_call: Option<FunctionCall>,
     // Add other fields as necessary based on API documentation
 }

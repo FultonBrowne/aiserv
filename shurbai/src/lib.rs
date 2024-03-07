@@ -126,7 +126,6 @@ pub fn generate(
         if json_format {
             ctx.grammar_accept_token(&mut grammar, new_token_id);
         }
-        //let new_token_id = ctx.sample( sample);
         if new_token_id == model.token_eos() {
             is_last = true;
         }
@@ -185,7 +184,7 @@ pub fn pretty_generate(
     let random_number: u32 = rng.gen();
 
     let ctx_params = LlamaContextParams::default()
-        .with_n_ctx(NonZeroU32::new(model.config.num_ctx.unwrap_or(2048) as u32))
+        .with_n_ctx(NonZeroU32::new(model.config.num_ctx.unwrap_or(512) as u32))
         .with_seed(random_number);
 
     let mut ctx = model.model
