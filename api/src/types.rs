@@ -48,6 +48,32 @@ pub struct GenerateCall {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ToolArguments {
+    name: String,
+    description: String,
+    data_type: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ToolDefinition {
+    pub name: String,
+    pub description: String,
+    pub arguments: Option<Vec<ToolArguments>>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ToolParameters {
+    name: String,
+    data_type: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ToolCall {
+    pub name: String,
+    pub arguments: Option<Vec<ToolParameters>>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Message {
     pub role: String,
     pub content: String,
@@ -59,6 +85,7 @@ pub struct ChatGenerateCall {
     pub messages: Vec<Message>,
     pub stream: Option<bool>,
     pub generate_params: Option<LlmParams>,
+    pub tools: Option<Vec<ToolDefinition>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -77,6 +104,8 @@ pub struct ChatGenerateResponse {
     pub response: String,
     pub took: u128,
     pub halt_reason: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tool_calls: Option<Vec<ToolCall>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

@@ -8,10 +8,11 @@ use tokio_stream::wrappers::ReceiverStream;
 
 use crate::{
     get_model, prompt,
+    tools::predict_tool_calls,
     types::{
         ChatGenerateCall, ChatGenerateResponse, ChatGenerateResponseChuck, ErrorResponse,
         GenerateCall, GenerateResponse, GeneratreResponseChuck, ListModelsResponse,
-        ModelListObject, ServerMetadata,
+        ModelListObject, ServerMetadata, ToolCall,
     },
     utils::{self, has_model},
 };
@@ -95,12 +96,22 @@ pub async fn chat_generate(
         )
             .into_response();
     }
+    let mut tool_calls = Vec::<ToolCall>::new();
     let model_state = get_model!(&model_manager, &request_body.model);
-    let mut prompt =
+    let prompt = if request_body.tools.is_some() {
+        // TODO Tool calls - will use the prompt to generate the tool calls from a "side model" (a simple fucntion for now, most likely will use some kind of fine tune later)
+        // That will then store a function call string and also append the prompt with the tool call and it will attempt to generate more response if needed
+        predict_tool_calls(
+            model_state,
+            &model_manager,
+            &mut request_body.messages.clone(),
+            &mut tool_calls,
+            &request_body.tools.unwrap(),
+        )
+    } else {
         prompt::generate_chat_prompt(&request_body.messages, &model_state.chat_template)
-            .expect("Failed to generate prompt");
-    // TODO Tool calls - will use the prompt to generate the tool calls from a "side model" (a simple fucntion for now, most likely will use some kind of fine tune later)
-    // That will then store a function call string and also append the prompt with the tool call and it will attempt to generate more response if needed
+            .expect("Failed to generate prompt")
+    };
 
     if request_body.stream.unwrap_or(false) {
         let (tx, rx) = tokio::sync::mpsc::channel(100);
@@ -155,6 +166,7 @@ pub async fn chat_generate(
         response: response.generated_tokens_data.concat(),
         model: request_body.model.clone(),
         took: response.duration.as_nanos(),
+        tool_calls: Some(tool_calls),
         halt_reason: None,
     };
     return (StatusCode::OK, Json(obj)).into_response();
