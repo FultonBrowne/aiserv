@@ -49,7 +49,18 @@ pub fn predict_tool_calls(
         }
     };
 
+    // Lets try a little something
     tool_calls.extend(r_json.iter().cloned());
+    // ChatGPT ass code
+    tool_calls.retain(|tool_call| {
+        tool_defs
+            .iter()
+            .any(|tool_def| tool_def.name == tool_call.name)
+    });
+    messages.push(Message {
+        role: "assistant".to_string(),
+        content: r_str,
+    });
     if tool_calls.is_empty() {
         prompt
     } else {

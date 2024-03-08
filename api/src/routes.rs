@@ -98,7 +98,7 @@ pub async fn chat_generate(
     }
     let mut tool_calls = Vec::<ToolCall>::new();
     let model_state = get_model!(&model_manager, &request_body.model);
-    let prompt = if request_body.tools.is_some() {
+    if request_body.tools.is_some() {
         // TODO Tool calls - will use the prompt to generate the tool calls from a "side model" (a simple fucntion for now, most likely will use some kind of fine tune later)
         // That will then store a function call string and also append the prompt with the tool call and it will attempt to generate more response if needed
         predict_tool_calls(
@@ -107,11 +107,10 @@ pub async fn chat_generate(
             &mut request_body.messages.clone(),
             &mut tool_calls,
             &request_body.tools.unwrap(),
-        )
-    } else {
-        prompt::generate_chat_prompt(&request_body.messages, &model_state.chat_template)
-            .expect("Failed to generate prompt")
-    };
+        );
+    }
+    let prompt = prompt::generate_chat_prompt(&request_body.messages, &model_state.chat_template)
+        .expect("Failed to generate prompt");
 
     if request_body.stream.unwrap_or(false) {
         let (tx, rx) = tokio::sync::mpsc::channel(100);

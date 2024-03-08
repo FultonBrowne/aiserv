@@ -24,7 +24,7 @@ pub struct ServerMetadata {
 impl ServerMetadata {
     pub fn new() -> Self {
         Self {
-            name: "Shurbai".to_string(),
+            name: "Friday by Shurburt".to_string(),
             version: "0.1.0".to_string(),
             timestamp: chrono::Utc::now().timestamp(),
         }
