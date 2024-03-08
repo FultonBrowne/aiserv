@@ -51,7 +51,7 @@ pub fn predict_tool_calls(
 
     tool_calls.extend(r_json.iter().cloned());
     if tool_calls.is_empty() {
-        prompt + "No tool calls generated. Carry on as normal. "
+        prompt
     } else {
         prompt + result.generated_tokens_data.concat().as_str()
     }

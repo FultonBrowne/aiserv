@@ -122,6 +122,7 @@ pub struct ChatGenerateResponseChuck {
     pub role: String,
     pub model: String,
     pub halt_reason: Option<String>,
+    pub tool_calls: Option<Vec<ToolCall>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

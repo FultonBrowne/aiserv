@@ -116,10 +116,23 @@ pub async fn chat_generate(
     if request_body.stream.unwrap_or(false) {
         let (tx, rx) = tokio::sync::mpsc::channel(100);
         let model_manager = model_manager.clone();
+        let tx_arc = Arc::new(tokio::sync::Mutex::new(tx));
+        if !tool_calls.is_empty() {
+            utils::send_to_stream(
+                tx_arc.clone(),
+                &ChatGenerateResponseChuck {
+                    meta: ServerMetadata::new(),
+                    token_str: "".to_string(),
+                    role: "assistant".to_string(),
+                    model: request_body.model.clone(),
+                    halt_reason: None,
+                    tool_calls: Some(tool_calls),
+                },
+            );
+        }
         let prompt = prompt.clone();
         task::spawn(async move {
             let model_state = get_model!(&model_manager, &request_body.model); // I don't like this, but we need it for the threading
-            let tx_arc = Arc::new(tokio::sync::Mutex::new(tx));
             pretty_generate(
                 model_state,
                 &model_manager.backend,
@@ -139,6 +152,7 @@ pub async fn chat_generate(
                             } else {
                                 None
                             },
+                            tool_calls: None,
                         },
                     );
                 })),

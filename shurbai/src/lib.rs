@@ -42,7 +42,7 @@ pub fn load_model(path: String, llama_backend: &LlamaBackend) -> Result<LlamaMod
         #[cfg(not(feature = "cublas"))]
         LlamaModelParams::default().with_use_mlock(true)
     };
-    let params = init_params.with_use_mlock(true);
+    let params = init_params;
     let model = LlamaModel::load_from_file(llama_backend, path.clone(), &params)
         .with_context(|| format!("failed to load model from {}", path))?;
     Ok(model)
