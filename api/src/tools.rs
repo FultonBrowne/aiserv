@@ -1,3 +1,4 @@
+use serde_json::Error;
 use shurbai::{
     pretty_generate,
     types::{ModelManager, ModelState},
@@ -8,8 +9,6 @@ use crate::{
     types::{Message, ToolCall, ToolDefinition},
 };
 
-const TOOL_PROMPT : &str = "Based on the above conversation, consider running the following tools, if none of them are relevant output \"{}\"\n"; //If we fine tune a model we may not need this
-
 pub fn predict_tool_calls(
     model: &ModelState,
     model_manager: &ModelManager,
@@ -17,11 +16,11 @@ pub fn predict_tool_calls(
     tool_calls: &mut Vec<ToolCall>,
     tool_defs: &Vec<ToolDefinition>,
 ) -> String {
-    let prompt_json = serde_json::to_string(tool_defs).expect("Failed to serialize prompt");
-    let system_prompt = format!("{}\n{}", TOOL_PROMPT, prompt_json);
+    let prompt_json = serde_json::to_string_pretty(tool_defs).expect("Failed to serialize prompt");
+    println!("{}", prompt_json);
     let tools_prompt_obj = Message {
-        role: "system".to_string(),
-        content: system_prompt,
+        role: "tool".to_string(),
+        content: prompt_json,
     };
     messages.insert(0, tools_prompt_obj);
     let prompt = prompt::generate_chat_prompt(&messages, &model.chat_template)
@@ -37,11 +36,23 @@ pub fn predict_tool_calls(
         Some(true),
     )
     .expect("Failed to generate tool completions"); // we want to hard code most params here and disable stops
-    println!("{:?}", result.generated_tokens_data);
+    let r_str = result.generated_tokens_data.concat();
+    let r_json: Result<Vec<ToolCall>, Error> = serde_json::from_str(&r_str);
 
-    tool_calls.push(ToolCall {
-        name: "tool".to_string(),
-        arguments: None,
-    });
-    prompt + result.generated_tokens_data.concat().as_str()
+    let r_json: Vec<ToolCall> = match r_json {
+        Ok(vec) => vec, // If r_str was a list, this will succeed
+        Err(_) => {
+            // If it was not a list, try as a single object
+            serde_json::from_str(&r_str)
+                .map(|single: ToolCall| vec![single]) // Wrap the single object in a Vec
+                .unwrap_or_else(|_| Vec::new()) // In case of error, default to empty Vec
+        }
+    };
+
+    tool_calls.extend(r_json.iter().cloned());
+    if tool_calls.is_empty() {
+        prompt + "No tool calls generated. Carry on as normal. "
+    } else {
+        prompt + result.generated_tokens_data.concat().as_str()
+    }
 }

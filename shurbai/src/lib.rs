@@ -10,6 +10,7 @@ use anyhow::Ok;
 use anyhow::{bail, Context, Result};
 use llama_cpp_2::context::params::LlamaContextParams;
 use llama_cpp_2::context::LlamaContext;
+use llama_cpp_2::ggml_time_us;
 use llama_cpp_2::llama_backend::LlamaBackend;
 use llama_cpp_2::llama_batch::LlamaBatch;
 use llama_cpp_2::model::params::LlamaModelParams;
@@ -17,7 +18,6 @@ use llama_cpp_2::model::AddBos;
 use llama_cpp_2::model::LlamaModel;
 use llama_cpp_2::token::data_array::LlamaTokenDataArray;
 use llama_cpp_2::token::LlamaToken;
-use llama_cpp_2::ggml_time_us;
 use rand::Rng;
 
 use std::num::NonZeroU32;
@@ -28,14 +28,10 @@ use std::time::Duration;
 
 pub type TokenCallback = Box<dyn Fn(String, bool)>;
 
-pub mod types;
 mod grammar;
+pub mod types;
 
-
-pub fn load_model(
-    path: String,
-    llama_backend: &LlamaBackend,
-) -> Result<LlamaModel> {
+pub fn load_model(path: String, llama_backend: &LlamaBackend) -> Result<LlamaModel> {
     let init_params = {
         #[cfg(feature = "cublas")]
         if model_config.use_gpu.unwrap_or(true) {
@@ -57,8 +53,7 @@ pub fn load_models(models: Vec<types::ModelDefinition>) -> Result<ModelManager> 
     //let arc_llama_backend = Arc::new(llama_backend);
     let mut loaded_models = HashMap::new();
     for model in models {
-        let llama_model = load_model(model.path, &llama_backend)
-            .expect("failed to load model");
+        let llama_model = load_model(model.path, &llama_backend).expect("failed to load model");
         let model_state = types::ModelState {
             model: llama_model,
             config: model.config,
@@ -90,7 +85,7 @@ pub fn generate(
     n_len: i32,
     token_callback: Option<TokenCallback>,
     stops: Option<&Vec<String>>,
-    json_format: bool
+    json_format: bool,
 ) -> Result<LlamaResult> {
     let mut batch = LlamaBatch::new(1024, 1);
     let last_index: i32 = (tokens_list.len() - 1) as i32;
@@ -100,8 +95,7 @@ pub fn generate(
         batch.add(token, i, &[0], is_last)?;
     }
 
-    ctx.decode(&mut batch)
-        .expect("llama_decode() failed");
+    ctx.decode(&mut batch).expect("llama_decode() failed");
 
     let mut n_cur = batch.n_tokens();
     let mut n_decode = 0;
@@ -115,7 +109,7 @@ pub fn generate(
         let candidates = ctx.candidates_ith(batch.n_tokens() - 1);
         let mut candidates_p = LlamaTokenDataArray::from_iter(candidates, false);
 
-        ctx.sample_temp(&mut candidates_p, 0.2); //TODO: make this a parameter with the model config object
+        ctx.sample_temp(&mut candidates_p, 0.0); //TODO: make this a parameter with the model config object
         if json_format {
             ctx.sample_grammar(&mut candidates_p, &mut grammar);
         }
@@ -136,7 +130,7 @@ pub fn generate(
                 is_last = true;
             }
         }
-        if is_last{
+        if is_last {
             if let Some(ref token_callback) = token_callback {
                 token_callback("".to_string(), is_last);
             }
@@ -187,12 +181,14 @@ pub fn pretty_generate(
         .with_n_ctx(NonZeroU32::new(model.config.num_ctx.unwrap_or(512) as u32))
         .with_seed(random_number);
 
-    let mut ctx = model.model
+    let mut ctx = model
+        .model
         .new_context(&backend, ctx_params)
         .with_context(|| "unable to create the llama_context")?;
 
     // tokenize the prompt
-    let tokens_list = model.model
+    let tokens_list = model
+        .model
         .str_to_token(&prompt, AddBos::Always)
         .with_context(|| format!("failed to tokenize {}", prompt))?;
 
@@ -205,9 +201,15 @@ pub fn pretty_generate(
             "n_kv_req > n_ctx, the required kv cache size is not big enough either reduce n_len or increase n_ctx"
         )
     }
-    let r = generate(&model.model, &mut ctx, tokens_list, n_len, token_callback, Some(stops), json_format.unwrap_or(false)).expect("failed to generate");
+    let r = generate(
+        &model.model,
+        &mut ctx,
+        tokens_list,
+        n_len,
+        token_callback,
+        Some(stops),
+        json_format.unwrap_or(false),
+    )
+    .expect("failed to generate");
     Ok(r)
 }
-
-
-

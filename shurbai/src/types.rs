@@ -45,6 +45,7 @@ pub struct ChatTemplate {
     pub user_template: String,
     pub system_template: String,
     pub assistant_template: String,
+    pub tool_template: String,
     pub assistant_prompt_template: String,
     pub stops: Vec<String>,
 }

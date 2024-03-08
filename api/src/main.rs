@@ -29,7 +29,18 @@ async fn main() {
 
     // run our app with hyper, listening globally on port 8080
     let address = "0.0.0.0:8080";
-    println!("vctr listening on {}", address);
+    let art = "
+
+        ███████╗██████╗ ██╗██████╗  █████╗ ██╗   ██╗
+        ██╔════╝██╔══██╗██║██╔══██╗██╔══██╗╚██╗ ██╔╝
+        █████╗  ██████╔╝██║██║  ██║███████║ ╚████╔╝
+        ██╔══╝  ██╔══██╗██║██║  ██║██╔══██║  ╚██╔╝
+        ██║     ██║  ██║██║██████╔╝██║  ██║   ██║
+        ╚═╝     ╚═╝  ╚═╝╚═╝╚═════╝ ╚═╝  ╚═╝   ╚═╝
+        ";
+    println!("{}", art);
+    println!("       Developed by Shurburt LLC. (c) 2024");
+    println!("       AI server listening on {}", address);
     let listener = tokio::net::TcpListener::bind(address).await.unwrap();
     axum::serve(listener, app).await.unwrap();
 }

@@ -18,6 +18,8 @@ pub fn generate_chat_prompt(messages: &Vec<Message>, template: &ChatTemplate) ->
         .expect("Could not add user template");
     tt.add_template("assistant", template.assistant_template.as_str())
         .expect("Could not add assistant template");
+    tt.add_template("tool", template.tool_template.as_str())
+        .expect("Could not add tool template");
     let mut prompt = String::new();
     for message in messages {
         let ctx = &TemplateContext {
@@ -34,6 +36,10 @@ pub fn generate_chat_prompt(messages: &Vec<Message>, template: &ChatTemplate) ->
             ),
             "system" => prompt.push_str(
                 &tt.render("system", &ctx)
+                    .expect("Could not render system template"),
+            ),
+            "tool" => prompt.push_str(
+                &tt.render("tool", &ctx)
                     .expect("Could not render system template"),
             ),
             _ => return Err(Error::new(std::io::ErrorKind::InvalidInput, "Invalid role")),
