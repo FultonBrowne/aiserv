@@ -33,7 +33,6 @@ pub struct ModelConfig {
     pub repeat_penalty: Option<f32>, // default: 1.1
     pub temperature: Option<f32>,    // default: 0.8
     pub seed: Option<i32>,           // default: 0
-    pub stop: Option<String>,        // no default specified
     pub tfs_z: Option<f32>,          // default: 1
     pub num_predict: Option<i32>,    // default: 128
     pub top_k: Option<i32>,          // default: 40
@@ -64,7 +63,6 @@ impl Default for ModelConfig {
             repeat_penalty: Some(1.1),
             temperature: Some(0.8),
             seed: Some(0),
-            stop: None,
             tfs_z: Some(1.0),
             num_predict: Some(128),
             top_k: Some(40),
