@@ -185,16 +185,18 @@ pub fn pretty_generate(
         .str_to_token(&prompt, AddBos::Always)
         .with_context(|| format!("failed to tokenize {}", prompt))?;
     println!("{}", tokens_list.len());
-    let n_len = max_tokens + tokens_list.len() as i32;
     // Fail here before building a possubly very large context and then segfaulting
     // "memory safe" amiright
+    if tokens_list.len() > context_size as usize {
+        bail!("n_len > n_ctx, the prompt is to big to fit in context")
+    }
     let n_kv_req = tokens_list.len() as i32 + (max_tokens);
     // make sure the KV cache is big enough to hold all the prompt and generated tokens
-    if n_kv_req > context_size as i32 {
-        bail!(
-            "n_kv_req > n_ctx, the required kv cache size is not big enough either reduce n_len or increase n_ctx"
-        )
-    }
+    let n_len = if n_kv_req > context_size as i32 {
+        context_size as i32 //Look here for bugs in the future, I think it's fine but still
+    } else {
+        n_kv_req
+    };
     let ctx_params = LlamaContextParams::default()
         .with_n_ctx(NonZeroU32::new(context_size))
         .with_n_batch(n_len as u32) //TODO: make this buffer size real
@@ -212,7 +214,7 @@ pub fn pretty_generate(
         n_len,
         token_callback,
         Some(stops),
-        2048,
+        n_len as u32, // this logic will be different for Large context models
         json_format.unwrap_or(false),
     )
     .expect("failed to generate");
