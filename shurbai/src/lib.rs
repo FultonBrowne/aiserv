@@ -85,15 +85,17 @@ pub fn generate(
     n_len: i32,
     token_callback: Option<TokenCallback>,
     stops: Option<&Vec<String>>,
+    batch_size: u32,
     json_format: bool,
 ) -> Result<LlamaResult> {
-    let mut batch = LlamaBatch::new(1024, 1);
+    let mut batch = LlamaBatch::new(batch_size as usize, 1); //TODO: make this buffer size real
     let last_index: i32 = (tokens_list.len() - 1) as i32;
     for (i, token) in (0_i32..).zip(tokens_list.into_iter()) {
         // llama_decode will output logits only for the last token of the prompt
         let is_last = i == last_index;
         batch.add(token, i, &[0], is_last)?;
     }
+    println!("Here");
 
     ctx.decode(&mut batch).expect("llama_decode() failed");
 
@@ -105,7 +107,7 @@ pub fn generate(
     let mut generated_tokens_data = Vec::new();
     let mut grammar = grammar::load_grammar();
     loop {
-        let mut is_last = n_cur == n_len; // Keep track of it here for the callback and use loop to save cycles
+        let mut is_last = n_cur == n_len;
         let candidates = ctx.candidates_ith(batch.n_tokens() - 1);
         let mut candidates_p = LlamaTokenDataArray::from_iter(candidates, false);
 
@@ -169,16 +171,33 @@ pub fn pretty_generate(
     model: &ModelState,
     backend: &LlamaBackend,
     prompt: &String,
-    n_len: i32,
+    max_tokens: i32,
     stops: &Vec<String>,
     token_callback: Option<TokenCallback>,
     json_format: Option<bool>,
 ) -> Result<LlamaResult> {
     let mut rng = rand::thread_rng();
     let random_number: u32 = rng.gen();
-
+    let context_size = model.config.num_ctx.unwrap_or(4096) as u32;
+    // tokenize the prompt
+    let tokens_list = model
+        .model
+        .str_to_token(&prompt, AddBos::Always)
+        .with_context(|| format!("failed to tokenize {}", prompt))?;
+    println!("{}", tokens_list.len());
+    let n_len = max_tokens + tokens_list.len() as i32;
+    // Fail here before building a possubly very large context and then segfaulting
+    // "memory safe" amiright
+    let n_kv_req = tokens_list.len() as i32 + (max_tokens);
+    // make sure the KV cache is big enough to hold all the prompt and generated tokens
+    if n_kv_req > context_size as i32 {
+        bail!(
+            "n_kv_req > n_ctx, the required kv cache size is not big enough either reduce n_len or increase n_ctx"
+        )
+    }
     let ctx_params = LlamaContextParams::default()
-        .with_n_ctx(NonZeroU32::new(model.config.num_ctx.unwrap_or(512) as u32))
+        .with_n_ctx(NonZeroU32::new(context_size))
+        .with_n_batch(n_len as u32) //TODO: make this buffer size real
         .with_seed(random_number);
 
     let mut ctx = model
@@ -186,21 +205,6 @@ pub fn pretty_generate(
         .new_context(&backend, ctx_params)
         .with_context(|| "unable to create the llama_context")?;
 
-    // tokenize the prompt
-    let tokens_list = model
-        .model
-        .str_to_token(&prompt, AddBos::Always)
-        .with_context(|| format!("failed to tokenize {}", prompt))?;
-
-    let n_cxt = ctx.n_ctx() as i32;
-    let n_kv_req = tokens_list.len() as i32 + (n_len - tokens_list.len() as i32);
-
-    // make sure the KV cache is big enough to hold all the prompt and generated tokens
-    if n_kv_req > n_cxt {
-        bail!(
-            "n_kv_req > n_ctx, the required kv cache size is not big enough either reduce n_len or increase n_ctx"
-        )
-    }
     let r = generate(
         &model.model,
         &mut ctx,
@@ -208,6 +212,7 @@ pub fn pretty_generate(
         n_len,
         token_callback,
         Some(stops),
+        2048,
         json_format.unwrap_or(false),
     )
     .expect("failed to generate");
