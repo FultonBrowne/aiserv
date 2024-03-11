@@ -27,7 +27,7 @@ pub struct ModelConfig {
     pub use_gpu: Option<bool>,       // default: true
     pub num_ctx: Option<i32>,        // default: 2048
     pub num_gqa: Option<i32>,        // no default specified
-    pub num_gpu: Option<i32>,        // no default specified
+    pub main_gpu: Option<i32>,       // no default specified
     pub num_thread: Option<i32>,     // no default specified
     pub repeat_last_n: Option<i32>,  // default: 64
     pub repeat_penalty: Option<f32>, // default: 1.1
@@ -58,7 +58,7 @@ impl Default for ModelConfig {
             use_gpu: Some(true),
             num_ctx: Some(2048),
             num_gqa: None,
-            num_gpu: None,
+            main_gpu: None,
             num_thread: None,
             repeat_last_n: Some(64),
             repeat_penalty: Some(1.1),

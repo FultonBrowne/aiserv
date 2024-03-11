@@ -21,7 +21,7 @@ use llama_cpp_2::token::LlamaToken;
 use rand::Rng;
 
 use std::num::NonZeroU32;
-use types::{LlamaResult, ModelManager, ModelState};
+use types::{LlamaResult, ModelConfig, ModelManager, ModelState};
 
 use std::collections::HashMap;
 use std::time::Duration;
@@ -31,8 +31,12 @@ pub type TokenCallback = Box<dyn Fn(String, bool)>;
 mod grammar;
 pub mod types;
 
-pub fn load_model(path: String, llama_backend: &LlamaBackend) -> Result<LlamaModel> {
-    let init_params = {
+pub fn load_model(
+    path: String,
+    model_config: ModelConfig,
+    llama_backend: &LlamaBackend,
+) -> Result<LlamaModel> {
+    let mut params = {
         #[cfg(feature = "cublas")]
         if model_config.use_gpu.unwrap_or(true) {
             LlamaModelParams::default().with_n_gpu_layers(1000)
@@ -42,7 +46,9 @@ pub fn load_model(path: String, llama_backend: &LlamaBackend) -> Result<LlamaMod
         #[cfg(not(feature = "cublas"))]
         LlamaModelParams::default().with_use_mlock(true)
     };
-    let params = init_params;
+    if model_config.main_gpu.is_some() {
+        params = params.with_main_gpu(model_config.main_gpu.unwrap());
+    }
     let model = LlamaModel::load_from_file(llama_backend, path.clone(), &params)
         .with_context(|| format!("failed to load model from {}", path))?;
     Ok(model)
@@ -53,7 +59,8 @@ pub fn load_models(models: Vec<types::ModelDefinition>) -> Result<ModelManager> 
     //let arc_llama_backend = Arc::new(llama_backend);
     let mut loaded_models = HashMap::new();
     for model in models {
-        let llama_model = load_model(model.path, &llama_backend).expect("failed to load model");
+        let llama_model = load_model(model.path, model.config.clone(), &llama_backend)
+            .expect("failed to load model");
         let model_state = types::ModelState {
             model: llama_model,
             config: model.config,
@@ -159,10 +166,10 @@ pub fn generate(
     println!("{}", ctx.timings());
     let llama_result = LlamaResult {
         n_tokens: n_cur,
-        n_decode: n_decode,
-        duration: duration,
-        generated_tokens: generated_tokens,
-        generated_tokens_data: generated_tokens_data,
+        n_decode,
+        duration,
+        generated_tokens,
+        generated_tokens_data,
     };
     Ok(llama_result)
 }
