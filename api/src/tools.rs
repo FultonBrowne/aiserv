@@ -41,7 +41,8 @@ pub fn predict_tool_calls(
 
     let r_json: Vec<ToolCall> = match r_json {
         Ok(vec) => vec, // If r_str was a list, this will succeed
-        Err(_) => {
+        Err(e) => {
+            println!("Failed to parse as list {}", e);
             // If it was not a list, try as a single object
             serde_json::from_str(&r_str)
                 .map(|single: ToolCall| vec![single]) // Wrap the single object in a Vec
@@ -57,6 +58,7 @@ pub fn predict_tool_calls(
             .iter()
             .any(|tool_def| tool_def.name == tool_call.name)
     });
+    println!("{:?}", tool_calls);
     messages.push(Message {
         role: "assistant".to_string(),
         content: r_str,

@@ -121,7 +121,9 @@ pub async fn chat_generate(
         let (tx, rx) = tokio::sync::mpsc::channel(100);
         let model_manager = model_manager.clone();
         let tx_arc = Arc::new(tokio::sync::Mutex::new(tx));
+        println!("{:?}", tool_calls);
         if !tool_calls.is_empty() {
+            println!("Sending tool calls");
             utils::send_to_stream(
                 tx_arc.clone(),
                 &ChatGenerateResponseChuck {
