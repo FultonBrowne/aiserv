@@ -226,9 +226,9 @@ checksum = "7b02b629252fe8ef6460461409564e2c21d0c8e77e0944f3d189ff06c4e932ad"
 
 [[package]]
 name = "cc"
-version = "1.0.89"
+version = "1.0.90"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a0ba8f7aaa012f30d5b2861462f6708eccd49c3c39863fe083a308035f63d723"
+checksum = "8cd6604a82acf3039f1144f54b8eb34e91ffba622051189e71b781822d5ee1f5"
 dependencies = [
  "jobserver",
  "libc",
@@ -653,9 +653,9 @@ checksum = "01cda141df6706de531b6c46c3a33ecca755538219bd484262fa09410c13539c"
 
 [[package]]
 name = "llama-cpp-2"
-version = "0.1.34"
+version = "0.1.39"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "557f49841417441b7a444a0fa86d9d4d0925346277f58685e4fe74e5a7d0e751"
+checksum = "685dfeb8439c1093f2077bc77a7445d648d0f1da43002b5a19354ce0f0badca1"
 dependencies = [
  "llama-cpp-sys-2",
  "thiserror",
@@ -664,9 +664,9 @@ dependencies = [
 
 [[package]]
 name = "llama-cpp-sys-2"
-version = "0.1.34"
+version = "0.1.39"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "556e9013cb093ec0722844812d0eb7b87fd55a1e9f5f31b4ab321b20fbfcf9c2"
+checksum = "e7d59e6f8ac298b7e4853e419f5df5250e2d77945d2cb0db743b0c2fd8d82409"
 dependencies = [
  "bindgen",
  "cc",
