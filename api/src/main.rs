@@ -5,6 +5,8 @@ mod types;
 mod utils;
 use std::sync::Arc;
 
+use tower_http::cors::CorsLayer;
+
 use crate::types::Config;
 use axum::{
     routing::{get, post},
@@ -25,6 +27,7 @@ async fn main() {
         .route("/models", get(routes::list_models))
         .route("/generate", post(routes::generate))
         .route("/generate/chat", post(routes::chat_generate))
+        .layer(CorsLayer::permissive()) // add CORS headers to each response, this is just to get stage one working
         .with_state(model_manager);
 
     // run our app with hyper, listening globally on port 8080

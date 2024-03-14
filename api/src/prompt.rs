@@ -20,6 +20,7 @@ pub fn generate_chat_prompt(messages: &Vec<Message>, template: &ChatTemplate) ->
         .expect("Could not add assistant template");
     tt.add_template("tool", template.tool_template.as_str())
         .expect("Could not add tool template");
+    tt.set_default_formatter(&tinytemplate::format_unescaped);
     let mut prompt = String::new();
     for message in messages {
         let ctx = &TemplateContext {
@@ -46,6 +47,6 @@ pub fn generate_chat_prompt(messages: &Vec<Message>, template: &ChatTemplate) ->
         }
     }
     prompt.push_str(&template.assistant_prompt_template);
-
+    println!("{}", prompt);
     Ok(prompt)
 }
