@@ -84,6 +84,7 @@ pub struct ChatGenerateCall {
     pub messages: Vec<Message>,
     pub stream: Option<bool>,
     pub generate_params: Option<LlmParams>,
+    pub tool_call_only: Option<bool>, // set this to only call tools and nothing else
     pub tools: Option<Vec<ToolDefinition>>,
 }
 

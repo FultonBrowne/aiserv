@@ -12,6 +12,18 @@ pub struct LlamaResult {
     pub generated_tokens_data: Vec<String>,
 }
 
+impl LlamaResult {
+    pub fn default() -> Self {
+        LlamaResult {
+            n_tokens: 0,
+            n_decode: 0,
+            duration: Duration::from_secs(0),
+            generated_tokens: Vec::new(),
+            generated_tokens_data: Vec::new(),
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ModelDefinition {
     pub path: String,
