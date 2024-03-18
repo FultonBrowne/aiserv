@@ -31,6 +31,17 @@ pub type TokenCallback = Box<dyn Fn(String, bool)>;
 mod grammar;
 pub mod types;
 
+fn i32_to_nonzero_u32(value: i32) -> Option<NonZeroU32> {
+    if value > 0 {
+        // Safe to cast since we know value is positive and i32 fits into u32
+        let u_value: u32 = value as u32;
+        // Safe to unwrap because we know u_value is non-zero
+        NonZeroU32::new(u_value)
+    } else {
+        None
+    }
+}
+
 pub fn load_model(
     path: String,
     model_config: ModelConfig,
@@ -46,6 +57,9 @@ pub fn load_model(
         #[cfg(not(feature = "cublas"))]
         LlamaModelParams::default()
     };
+    params = params.with_use_mlock(true);
+    //TODO: Try to disable mmap
+
     if model_config.main_gpu.is_some() {
         params = params.with_main_gpu(model_config.main_gpu.unwrap());
     }
@@ -202,7 +216,7 @@ pub fn pretty_generate(
         n_kv_req
     };
     let ctx_params = LlamaContextParams::default()
-        .with_n_ctx(NonZeroU32::new(context_size))
+        .with_n_ctx(i32_to_nonzero_u32(n_len)) // This could have issues and we should have a use max context values
         .with_n_batch(n_len as u32)
         .with_seed(random_number);
 

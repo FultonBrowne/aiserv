@@ -57,7 +57,6 @@ pub fn predict_tool_calls(
             .iter()
             .any(|tool_def| tool_def.name == tool_call.name)
     });
-    println!("{:?}", tool_calls);
     messages.push(Message {
         role: "assistant".to_string(),
         content: r_str,
