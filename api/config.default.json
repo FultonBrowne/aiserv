@@ -53,34 +53,82 @@
       }
     },
     {
-      "models": [
-        {
-          "path": "../models/mistral.gguf",
-          "name": "mistral",
-          "config": {
-            "mirostat": 0,
-            "mirostat_eta": 0.1,
-            "mirostat_tau": 5.0,
-            "num_ctx": 4096,
-            "repeat_last_n": 64,
-            "repeat_penalty": 1.1,
-            "temperature": 0.8,
-            "seed": 0,
-            "tfs_z": 1.0,
-            "num_predict": 128,
-            "top_k": 40,
-            "top_p": 0.9
-          },
-          "chat_template": {
-            "user_template": "[INST] {content} </s>",
-            "system_template": "[INST] <<SYS>> \n {content} <</SYS>> </s>\n\n",
-            "assistant_template": "[/INST] {content}\n </s>",
-            "assistant_prompt_template": "[/INST] ",
-            "tool_template": "[INST] <<SYS>> You have access to a tool system, if you give a tool that matches the name of a tool, it will be used to perform actions\\nsuch as giving feedback to the user and give up to date information.\\nTo use a tool, place the needed tool and its args in the following format, if no tool is need output a blank json object you must stick to this format **exactly** for function calls after function calls carry on as normal: \\{\\n\\\"name\\\": \\\"name_of_tool\\\",\\n\\\"arguments\\\": [\\n    \\{\\n    \\\"name\\\": \\\"name_or_argument\\\",\\n    \\\"argument\\\": \\\"content_of_argument\\\"\\n    }\\n}\\nHere is a json representation of the tools that you can use:\\n {content}\\n <</SYS>> </s> \\n\\n",
-            "stops": ["INST", "<<SYS>>", "<</SYS>>"]
-          }
-        }
-      ]
+      "path": "../models/mistral.gguf",
+      "name": "mistral",
+      "config": {
+        "mirostat": 0,
+        "mirostat_eta": 0.1,
+        "mirostat_tau": 5.0,
+        "num_ctx": 8192,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "temperature": 0.8,
+        "seed": 0,
+        "tfs_z": 1.0,
+        "num_predict": 128,
+        "top_k": 40,
+        "top_p": 0.9
+      },
+      "chat_template": {
+        "user_template": "[INST] {content} \n",
+        "system_template": "[INST] <<SYS>> \n {content} <</SYS>>\n",
+        "assistant_template": "[/INST] {content}\n",
+        "assistant_prompt_template": "[/INST] ",
+        "tool_template": "[INST] <<SYS>> You have access to a tool system, if you give a tool that matches the name of a tool, it will be used to perform actions\nsuch as giving feedback to the user and give up to date information.\\nTo use a tool, place the needed tool and its args in the following format, if no tool is needed output a blank json listyou must stick to this format **exactly** for function calls after function calls carry on as normal: {template} \n Here is a json representation of the tools that you can use:\n {tools}\n <</SYS>> \n\n",
+        "stops": ["INST", "<<SYS>>", "<</SYS>>"]
+      }
+    },
+    {
+      "path": "../models/nueral.gguf",
+      "name": "mistral",
+      "config": {
+        "mirostat": 0,
+        "mirostat_eta": 0.1,
+        "mirostat_tau": 5.0,
+        "num_ctx": 4096,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "temperature": 0.8,
+        "seed": 0,
+        "tfs_z": 1.0,
+        "num_predict": 128,
+        "top_k": 40,
+        "top_p": 0.9
+      },
+      "chat_template": {
+        "user_template": "### User:\n{content}\n",
+        "system_template": "### System: \n {content} \n",
+        "assistant_template": "### Assistant:\n{content}\n",
+        "assistant_prompt_template": "### Assistant:\n",
+        "tool_template": "### System: You have access to a tool system, if you give a tool that matches the name of a tool, it will be used to perform actions\nsuch as giving feedback to the user and give up to date information.\\nTo use a tool, place the needed tool and its args in the following format, if no tool is need output a blank json object you must stick to this format **exactly** for function calls after function calls carry on as normal. Here is a json representation of the tools that you can use:\n {tools}\n here is a json representiation of the format they should be called in:\n {template}\n",
+        "stops": ["INST", "<<SYS>>", "<</SYS>>"]
+      }
+    },
+    {
+      "path": "../models/dolphin.gguf",
+      "name": "mistral",
+      "config": {
+        "mirostat": 0,
+        "mirostat_eta": 0.1,
+        "mirostat_tau": 5.0,
+        "num_ctx": 8192,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "temperature": 0.8,
+        "seed": 0,
+        "tfs_z": 1.0,
+        "num_predict": 128,
+        "top_k": 40,
+        "top_p": 0.9
+      },
+      "chat_template": {
+        "user_template": "<|im_start|>user {content}<|im_end|>",
+        "system_template": "<|im_start|>system {content} <|im_end|>",
+        "assistant_template": "<|im_start|>assistant {content} <|im_end|>",
+        "assistant_prompt_template": "<|im_start|>assistant ",
+        "tool_template": "<|im_start|>system You have access to a tool system, if you give a tool that matches the name of a tool, it will be used to perform actions\nsuch as giving feedback to the user and give up to date information.\\nTo use a tool, place the needed tool and its args in the following format, if no tool is needed output a blank json listyou must stick to this format **exactly** for function calls after function calls carry on as normal: {template} \n Here is a json representation of the tools that you can use:\n {tools} <|im_end|>",
+        "stops": ["INST", "<<SYS>>", "<</SYS>>"]
+      }
     }
   ]
 }

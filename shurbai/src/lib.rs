@@ -131,13 +131,14 @@ pub fn generate(
         let candidates = ctx.candidates_ith(batch.n_tokens() - 1);
         let mut candidates_p = LlamaTokenDataArray::from_iter(candidates, false);
 
-        ctx.sample_temp(&mut candidates_p, 0.0); //TODO: make this a parameter with the model config object
+        ctx.sample_temp(&mut candidates_p, 0.2); //TODO: make this a parameter with the model config object
         if json_format {
             ctx.sample_grammar(&mut candidates_p, &mut grammar);
         }
         ctx.sample_token_softmax(&mut candidates_p);
-        ctx.sample_top_k(&mut candidates_p, 10, 32);
-        ctx.sample_top_p(&mut candidates_p, 0.2, 32);
+        ctx.sample_top_k(&mut candidates_p, 5, 32);
+        ctx.sample_top_p(&mut candidates_p, 0.1, 32);
+        ctx.sample_typical(&mut candidates_p, 0.9, 32);
         let new_token_id = candidates_p.data[0].id();
         if json_format {
             ctx.grammar_accept_token(&mut grammar, new_token_id);
