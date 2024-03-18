@@ -17,7 +17,6 @@ pub fn predict_tool_calls(
     tool_defs: &Vec<ToolDefinition>,
 ) -> String {
     let prompt_json = serde_json::to_string_pretty(tool_defs).expect("Failed to serialize prompt");
-    println!("{}", prompt_json);
     let tools_prompt_obj = Message {
         role: "tool".to_string(),
         content: prompt_json,

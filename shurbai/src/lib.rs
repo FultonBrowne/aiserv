@@ -44,7 +44,7 @@ pub fn load_model(
             LlamaModelParams::default()
         }
         #[cfg(not(feature = "cublas"))]
-        LlamaModelParams::default().with_use_mlock(true)
+        LlamaModelParams::default()
     };
     if model_config.main_gpu.is_some() {
         params = params.with_main_gpu(model_config.main_gpu.unwrap());
@@ -102,7 +102,6 @@ pub fn generate(
         let is_last = i == last_index;
         batch.add(token, i, &[0], is_last)?;
     }
-    println!("Here");
 
     ctx.decode(&mut batch).expect("llama_decode() failed");
 
@@ -163,7 +162,6 @@ pub fn generate(
     let t_main_end = ggml_time_us();
     let duration = Duration::from_micros((t_main_end - t_main_start) as u64);
 
-    println!("{}", ctx.timings());
     let llama_result = LlamaResult {
         n_tokens: n_cur,
         n_decode,
@@ -191,7 +189,6 @@ pub fn pretty_generate(
         .model
         .str_to_token(&prompt, AddBos::Always)
         .with_context(|| format!("failed to tokenize {}", prompt))?;
-    println!("{}", tokens_list.len());
     // Fail here before building a possubly very large context and then segfaulting
     // "memory safe" amiright
     if tokens_list.len() > context_size as usize {
@@ -206,7 +203,7 @@ pub fn pretty_generate(
     };
     let ctx_params = LlamaContextParams::default()
         .with_n_ctx(NonZeroU32::new(context_size))
-        .with_n_batch(n_len as u32) //TODO: make this buffer size real
+        .with_n_batch(n_len as u32)
         .with_seed(random_number);
 
     let mut ctx = model

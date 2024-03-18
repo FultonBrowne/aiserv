@@ -47,6 +47,5 @@ pub fn generate_chat_prompt(messages: &Vec<Message>, template: &ChatTemplate) ->
         }
     }
     prompt.push_str(&template.assistant_prompt_template);
-    println!("{}", prompt);
     Ok(prompt)
 }
