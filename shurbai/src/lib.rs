@@ -58,6 +58,8 @@ pub fn load_model(
         LlamaModelParams::default()
     };
     params = params.with_use_mlock(true);
+    //TODO: Try to disable mmap
+
     if model_config.main_gpu.is_some() {
         params = params.with_main_gpu(model_config.main_gpu.unwrap());
     }
