@@ -1,6 +1,4 @@
-use llama_cpp_2::{
-    context::LlamaContext, llama_backend::LlamaBackend, model::LlamaModel, token::LlamaToken,
-};
+use llama_cpp_2::{llama_backend::LlamaBackend, model::LlamaModel, token::LlamaToken};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, time::Duration};
 
@@ -42,6 +40,7 @@ pub struct ModelConfig {
     pub num_ctx: Option<i32>,        // default: 2048
     pub num_gqa: Option<i32>,        // no default specified
     pub main_gpu: Option<i32>,       // no default specified
+    pub use_mem_lock: Option<bool>,  // default: true
     pub num_thread: Option<i32>,     // no default specified
     pub repeat_last_n: Option<i32>,  // default: 64
     pub repeat_penalty: Option<f32>, // default: 1.1
@@ -72,6 +71,7 @@ impl Default for ModelConfig {
             num_ctx: Some(2048),
             num_gqa: None,
             main_gpu: None,
+            use_mem_lock: Some(true), // I like this on my default -- Fulton
             num_thread: None,
             repeat_last_n: Some(64),
             repeat_penalty: Some(1.1),

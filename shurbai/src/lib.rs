@@ -57,7 +57,7 @@ pub fn load_model(
         #[cfg(not(feature = "cublas"))]
         LlamaModelParams::default()
     };
-    params = params.with_use_mlock(true);
+    params = params.with_use_mlock(model_config.use_mem_lock.unwrap_or(true));
     //TODO: Try to disable mmap
 
     if model_config.main_gpu.is_some() {
