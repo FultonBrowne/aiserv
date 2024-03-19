@@ -37,6 +37,7 @@ number ::= ("-"? ([0-9] | [1-9] [0-9]*)) ("." [0-9]+)? ([eE] [-+]? [0-9]+)? ws
 # Optional space: by convention, applied in this grammar after literal chars when allowed
 ws ::= ([ \t\n] ws)?"#;
 
+/// Load the statically defined JSON grammar
 pub fn load_grammar() -> LlamaGrammar {
     LlamaGrammar::from_str(JSON_GRAMMAR).expect("Failed to load grammar")
 }

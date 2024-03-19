@@ -31,6 +31,7 @@ pub type TokenCallback = Box<dyn Fn(String, bool)>;
 mod grammar;
 pub mod types;
 
+/// Convert i32 to NonZeroU32
 fn i32_to_nonzero_u32(value: i32) -> Option<NonZeroU32> {
     if value > 0 {
         // Safe to cast since we know value is positive and i32 fits into u32
@@ -42,6 +43,13 @@ fn i32_to_nonzero_u32(value: i32) -> Option<NonZeroU32> {
     }
 }
 
+/// Load a model from a file
+/// # Arguments
+/// * `path` - The path to the model file
+/// * `model_config` - The configuration for the model
+/// * `llama_backend` - The llama backend to use
+/// # Returns
+/// The loaded model
 pub fn load_model(
     path: String,
     model_config: ModelConfig,
@@ -68,6 +76,13 @@ pub fn load_model(
     Ok(model)
 }
 
+/// Load models from a list of model definitions and create a model manager
+/// # Arguments
+/// * `models` - The list of model definitions
+/// # Returns
+/// The model manager
+/// # Errors
+/// If any of the models fail to load
 pub fn load_models(models: Vec<types::ModelDefinition>) -> Result<ModelManager> {
     let llama_backend = LlamaBackend::init().expect("failed to initialize llama_backend");
     //let arc_llama_backend = Arc::new(llama_backend);
@@ -97,6 +112,9 @@ pub fn load_models(models: Vec<types::ModelDefinition>) -> Result<ModelManager> 
 /// * `tokens_list` - The list of tokens
 /// * `n_len` - The length of the sequence
 /// * `token_callback` - The token callback
+/// * `stops` - The list of stop words
+/// * `batch_size` - The batch size
+/// * `json_format` - Force json format
 /// # Returns
 /// * The llama result
 pub fn generate(
@@ -187,6 +205,20 @@ pub fn generate(
     Ok(llama_result)
 }
 
+/// A pretty interface to generate a llama response
+/// # Arguments
+/// * `model` - The llama model
+/// * `backend` - The llama backend
+/// * `prompt` - The prompt
+/// * `max_tokens` - The maximum number of tokens
+/// * `stops` - The list of stops
+/// * `token_callback` - The token callback
+/// * `json_format` - Restrict output to json format
+/// # Returns
+/// * The llama result
+/// # Errors
+/// * If the model fails to tokenize the prompt
+/// * If the model fails to generate the response
 pub fn pretty_generate(
     model: &ModelState,
     backend: &LlamaBackend,

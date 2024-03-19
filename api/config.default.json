@@ -106,7 +106,7 @@
     },
     {
       "path": "../models/dolphin.gguf",
-      "name": "mistral",
+      "name": "dolphin",
       "config": {
         "mirostat": 0,
         "mirostat_eta": 0.1,
