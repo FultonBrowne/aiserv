@@ -126,8 +126,9 @@ pub async fn chat_generate(
             .into_response();
     }
 
-    let prompt = prompt::generate_chat_prompt(&request_body.messages, &model_state.chat_template)
-        .expect("Failed to generate prompt");
+    let prompt =
+        prompt::generate_chat_prompt(&request_body.messages, &model_state.chat_template, false)
+            .expect("Failed to generate prompt");
 
     if request_body.stream.unwrap_or(false) {
         let (tx, rx) = tokio::sync::mpsc::channel(100);

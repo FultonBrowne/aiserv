@@ -249,7 +249,8 @@ pub fn pretty_generate(
         n_kv_req
     };
     let ctx_params = LlamaContextParams::default()
-        .with_n_ctx(i32_to_nonzero_u32(n_len)) // This could have issues and we should have a use max context values
+        //.with_n_ctx(i32_to_nonzero_u32(n_len)) // This could have issues and we should have a use max context values
+        .with_n_ctx(NonZeroU32::new(context_size))
         .with_n_batch(n_len as u32)
         .with_seed(random_number);
 

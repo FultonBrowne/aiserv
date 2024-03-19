@@ -26,16 +26,29 @@ const TOOL_TEMPLATE_JSON: &str = r#"{
   ]
 }"#;
 
-pub fn generate_chat_prompt(messages: &Vec<Message>, template: &ChatTemplate) -> Result<String> {
+pub fn generate_chat_prompt(
+    messages: &Vec<Message>,
+    template: &ChatTemplate,
+    tools_prompt: bool,
+) -> Result<String> {
+    let assistant_template = template.assistant_template.clone();
     let mut tt = TinyTemplate::new();
     tt.add_template("system", template.system_template.as_str())
         .expect("Could not add system template");
     tt.add_template("user", template.user_template.as_str())
         .expect("Could not add user template");
-    tt.add_template("assistant", template.assistant_template.as_str())
+    tt.add_template("assistant", assistant_template.as_str())
         .expect("Could not add assistant template");
     tt.add_template("tool", template.tool_template.as_str())
         .expect("Could not add tool template");
+    tt.add_template(
+        "tool_calls",
+        template
+            .tool_call_template
+            .as_ref()
+            .unwrap_or(&assistant_template),
+    )
+    .expect("Could not add tool template");
     tt.set_default_formatter(&tinytemplate::format_unescaped);
     let mut prompt = String::new();
     for message in messages {
@@ -66,9 +79,22 @@ pub fn generate_chat_prompt(messages: &Vec<Message>, template: &ChatTemplate) ->
                 &tt.render("system", &ctx)
                     .expect("Could not render system template"),
             ),
+            "tool_calls" => prompt.push_str(
+                &tt.render("tool_calls", &ctx)
+                    .expect("Could not render tool_calls template"),
+            ),
             _ => return Err(Error::new(std::io::ErrorKind::InvalidInput, "Invalid role")),
         }
     }
-    prompt.push_str(&template.assistant_prompt_template);
+    if tools_prompt {
+        prompt.push_str(
+            &template
+                .tool_prompt_template
+                .clone()
+                .unwrap_or(template.assistant_prompt_template.clone()),
+        );
+    } else {
+        prompt.push_str(&template.assistant_prompt_template);
+    }
     Ok(prompt)
 }
