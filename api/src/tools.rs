@@ -22,7 +22,7 @@ pub fn predict_tool_calls(
         content: prompt_json,
     };
     messages.insert(0, tools_prompt_obj);
-    let prompt = prompt::generate_chat_prompt(&messages, &model.chat_template)
+    let prompt = prompt::generate_chat_prompt(&messages, &model.chat_template, true)
         .expect("Failed to generate prompt");
     let blank_strings: Vec<String> = Vec::new(); // Blank list stop for list
     let result = pretty_generate(
@@ -58,7 +58,7 @@ pub fn predict_tool_calls(
             .any(|tool_def| tool_def.name == tool_call.name)
     });
     messages.push(Message {
-        role: "assistant".to_string(),
+        role: "tool_calls".to_string(),
         content: r_str,
     });
     if tool_calls.is_empty() {
