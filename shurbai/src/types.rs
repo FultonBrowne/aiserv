@@ -1,4 +1,6 @@
-use llama_cpp_2::{llama_backend::LlamaBackend, model::LlamaModel, token::LlamaToken};
+use llama_cpp_2::{
+    context::LlamaContext, llama_backend::LlamaBackend, model::LlamaModel, token::LlamaToken,
+};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, time::Duration};
 

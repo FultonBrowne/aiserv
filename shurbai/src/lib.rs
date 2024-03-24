@@ -258,7 +258,6 @@ pub fn pretty_generate(
         .model
         .new_context(&backend, ctx_params)
         .with_context(|| "unable to create the llama_context")?;
-
     let r = generate(
         &model.model,
         &mut ctx,
