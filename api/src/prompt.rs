@@ -20,9 +20,13 @@ const TOOL_TEMPLATE_JSON: &str = r#"{
   "name": "name_of_tool",
   "arguments": [
     {
-      "name": "name_or_argument",
+      "name": "name_of_argument",
       "argument": "content_of_argument"
-    }
+    },
+    {
+      "name": "name_of_argument",
+      "argument": "content_of_argument"
+      }
   ]
 }"#;
 
