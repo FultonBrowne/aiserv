@@ -18,16 +18,10 @@ struct ToolsTemplateContext {
 
 const TOOL_TEMPLATE_JSON: &str = r#"{
   "name": "name_of_tool",
-  "arguments": [
-    {
-      "name": "name_of_argument",
-      "argument": "content_of_argument"
-    },
-    {
-      "name": "name_of_argument",
-      "argument": "content_of_argument"
-      }
-  ]
+  "arguments": {
+      "name_of_argument_one": "content_of_argument_one",
+      "name_of_argument_two": "content_of_argument_two"
+    }
 }"#;
 
 pub fn generate_chat_prompt(

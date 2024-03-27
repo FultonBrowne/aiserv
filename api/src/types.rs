@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use shurbai::types::ModelDefinition;
 
 #[derive(Serialize, Deserialize)]
@@ -69,7 +70,7 @@ pub struct ToolParameters {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ToolCall {
     pub name: String,
-    pub arguments: Option<Vec<ToolParameters>>,
+    pub arguments: Option<Value>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
