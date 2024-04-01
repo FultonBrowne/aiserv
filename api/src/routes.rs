@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use axum_streams::StreamBodyAs;
@@ -15,9 +15,9 @@ use crate::{
     types::{
         ChatGenerateCall, ChatGenerateResponse, ChatGenerateResponseChuck, ErrorResponse,
         GenerateCall, GenerateResponse, GeneratreResponseChuck, ListModelsResponse,
-        ModelListObject, ServerMetadata, ToolCall,
+        ModelListObject, ServerMetadata, ToolCall, XmlState,
     },
-    utils::{self, has_model},
+    utils::{self, has_model, process_xml_token},
 };
 
 pub async fn generate(
@@ -42,6 +42,7 @@ pub async fn generate(
         task::spawn(async move {
             let model_state = get_model!(&model_manager, &request_body.model); // I don't like this, but we need it for the threading
             let tx_arc = Arc::new(tokio::sync::Mutex::new(tx));
+            let xml_state = Arc::new(Mutex::new(XmlState::new()));
             pretty_generate(
                 model_state,
                 &model_manager.backend,
@@ -49,6 +50,8 @@ pub async fn generate(
                 max_tokens,
                 &model_state.chat_template.stops,
                 Some(Box::new(move |s, is_last| {
+                    let mut xml_state = xml_state.lock().unwrap();
+                    process_xml_token(&mut xml_state, &s);
                     utils::send_to_stream(
                         Arc::clone(&tx_arc),
                         &GeneratreResponseChuck {
@@ -153,6 +156,7 @@ pub async fn chat_generate(
             let prompt = prompt.clone();
             task::spawn(async move {
                 let model_state = get_model!(&model_manager, &request_body.model); // I don't like this, but we need it for the threading
+                let xml_state = Arc::new(Mutex::new(XmlState::new())); // Assuming XML blocking is desired
                 pretty_generate(
                     model_state,
                     &model_manager.backend,
@@ -160,6 +164,8 @@ pub async fn chat_generate(
                     512,
                     &model_state.chat_template.stops,
                     Some(Box::new(move |s, is_last| {
+                        let mut xml_state = xml_state.lock().unwrap();
+                        process_xml_token(&mut xml_state, &s);
                         utils::send_to_stream(
                             Arc::clone(&tx_arc),
                             &ChatGenerateResponseChuck {

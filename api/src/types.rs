@@ -2,6 +2,30 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use shurbai::types::ModelDefinition;
 
+/// XML proccessing structs:
+#[derive(Debug)]
+pub struct XmlState {
+    pub in_xml_tag: bool,
+    pub in_xml_body: bool,
+    pub xml_tag_name: String,
+    pub xml_body_content: String,
+    pub current_accumulated_tag: String,
+}
+
+impl XmlState {
+    pub fn new() -> Self {
+        XmlState {
+            in_xml_tag: false,
+            in_xml_body: false,
+            xml_tag_name: String::new(),
+            xml_body_content: String::new(),
+            current_accumulated_tag: String::new(),
+        }
+    }
+
+    // Define other methods here as needed
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct StatusMessage {
     pub message: String,
