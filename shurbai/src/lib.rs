@@ -21,6 +21,7 @@ use llama_cpp_2::token::LlamaToken;
 use rand::Rng;
 
 use std::num::NonZeroU32;
+use std::thread::sleep;
 use types::{LlamaResult, ModelConfig, ModelManager, ModelState};
 
 use std::collections::HashMap;
@@ -163,13 +164,13 @@ pub fn generate(
         if new_token_id == model.token_eos() || find_stops(stops, &token_str) {
             break;
         }
+        if let Some(ref token_callback) = token_callback {
+            token_callback(token_str.clone(), false);
+        }
+
         print!("{}", token_str);
         generated_tokens.push(new_token_id);
         generated_tokens_data.push(token_str.clone()); //TODO: make that suck less
-
-        if let Some(ref token_callback) = token_callback {
-            token_callback(token_str, false);
-        }
 
         batch.clear();
         batch.add(new_token_id, n_cur, &[0], true)?;
@@ -180,7 +181,6 @@ pub fn generate(
 
     let t_main_end = ggml_time_us();
     let duration = Duration::from_micros((t_main_end - t_main_start) as u64);
-
     let llama_result = LlamaResult {
         n_tokens: n_cur,
         n_decode,

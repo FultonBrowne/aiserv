@@ -184,6 +184,17 @@ impl ChatGenerateResponseChuck {
             tool_calls: Some(tool_calls),
         }
     }
+
+    pub fn new_halt(full_text: &str, halt_reason: &str) -> ChatGenerateResponseChuck {
+        ChatGenerateResponseChuck {
+            meta: ServerMetadata::new(), // Assuming this constructs a new ServerMetadata
+            token_str: full_text.to_string(),
+            role: "assistant".to_string(),
+            model: "".to_string(),
+            halt_reason: Some(halt_reason.to_string()),
+            tool_calls: None,
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

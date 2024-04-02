@@ -59,7 +59,7 @@ pub struct ChatTemplate {
     pub user_template: String,
     pub system_template: String,
     pub assistant_template: String,
-    pub tool_call_template: Option<String>,
+    pub tool_response_template: Option<String>,
     pub tool_template: String,
     pub tool_prompt_template: Option<String>,
     pub assistant_prompt_template: String,

@@ -38,7 +38,7 @@ pub fn generate_chat_prompt(messages: &Vec<Message>, template: &ChatTemplate) ->
     tt.add_template(
         "tool_calls",
         template
-            .tool_call_template
+            .tool_response_template
             .as_ref()
             .unwrap_or(&assistant_template),
     )

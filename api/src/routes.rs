@@ -117,11 +117,12 @@ pub async fn chat_generate(
     if request_body.stream.unwrap_or(false) {
         let (tx, rx) = tokio::sync::mpsc::channel(100);
         let model_manager = model_manager.clone();
-        let tx_arc = Arc::new(tokio::sync::Mutex::new(tx));
         let prompt = prompt.clone();
         task::spawn(async move {
             let model_name = request_body.model.clone();
             let model_state = get_model!(&model_manager, &model_name); // I don't like this, but we need it for the threading
+            let tx_arc = Arc::new(tokio::sync::Mutex::new(tx));
+            let tx_arc_ref = Arc::clone(&tx_arc);
             let xml_state = Arc::new(Mutex::new(XmlState::new()));
             let r = pretty_generate(
                 model_state,
@@ -130,6 +131,7 @@ pub async fn chat_generate(
                 512,
                 &model_state.chat_template.stops,
                 Some(Box::new(move |s, _is_last| {
+                    let tx_arc = Arc::clone(&tx_arc_ref);
                     let mut xml_state = xml_state.lock().unwrap();
                     if has_tools {
                         let t = process_xml_token(&mut xml_state, &s);
@@ -161,6 +163,10 @@ pub async fn chat_generate(
                 Some(false),
             )
             .expect("Failed to generate"); //TODO: At some point lets return the full info to the user
+            utils::send_to_stream(
+                tx_arc,
+                &ChatGenerateResponseChuck::new_halt(&r.generated_tokens_data.concat(), "done"),
+            );
         });
         let rx_stream = ReceiverStream::new(rx);
         return StreamBodyAs::json_nl(rx_stream).into_response();
