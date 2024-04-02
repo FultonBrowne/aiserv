@@ -24,11 +24,7 @@ const TOOL_TEMPLATE_JSON: &str = r#"{
     }
 }"#;
 
-pub fn generate_chat_prompt(
-    messages: &Vec<Message>,
-    template: &ChatTemplate,
-    tools_prompt: bool,
-) -> Result<String> {
+pub fn generate_chat_prompt(messages: &Vec<Message>, template: &ChatTemplate) -> Result<String> {
     let assistant_template = template.assistant_template.clone();
     let mut tt = TinyTemplate::new();
     tt.add_template("system", template.system_template.as_str())
@@ -84,15 +80,6 @@ pub fn generate_chat_prompt(
             _ => return Err(Error::new(std::io::ErrorKind::InvalidInput, "Invalid role")),
         }
     }
-    if tools_prompt {
-        prompt.push_str(
-            &template
-                .tool_prompt_template
-                .clone()
-                .unwrap_or(template.assistant_prompt_template.clone()),
-        );
-    } else {
-        prompt.push_str(&template.assistant_prompt_template);
-    }
+    prompt.push_str(&template.assistant_prompt_template);
     Ok(prompt)
 }

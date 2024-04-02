@@ -103,6 +103,15 @@ pub struct Message {
     pub content: String,
 }
 
+impl Message {
+    pub fn new(role: &str, content: &str) -> Message {
+        Message {
+            role: role.to_string(),
+            content: content.to_string(),
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ChatGenerateCall {
     pub model: String,
@@ -149,6 +158,30 @@ pub struct ChatGenerateResponseChuck {
     pub model: String,
     pub halt_reason: Option<String>,
     pub tool_calls: Option<Vec<ToolCall>>,
+}
+
+impl ChatGenerateResponseChuck {
+    pub fn new_token(model: &str, token_str: &str) -> ChatGenerateResponseChuck {
+        ChatGenerateResponseChuck {
+            meta: ServerMetadata::new(), // Assuming this constructs a new ServerMetadata
+            token_str: token_str.to_string(),
+            role: "assistant".to_string(),
+            model: model.to_string(),
+            halt_reason: None,
+            tool_calls: None,
+        }
+    }
+
+    pub fn new_tool_call(model: &str, tool_calls: Vec<ToolCall>) -> ChatGenerateResponseChuck {
+        ChatGenerateResponseChuck {
+            meta: ServerMetadata::new(), // Assuming this constructs a new ServerMetadata
+            token_str: "".to_string(),
+            role: "assistant".to_string(),
+            model: model.to_string(),
+            halt_reason: None,
+            tool_calls: Some(tool_calls),
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

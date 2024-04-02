@@ -37,7 +37,7 @@ where
     });
 }
 
-pub fn process_xml_token(xml_state: &mut XmlState, token: &str) {
+pub fn process_xml_token(xml_state: &mut XmlState, token: &str) -> Option<String> {
     if token.contains("<") && !xml_state.in_xml_body {
         xml_state.in_xml_tag = true;
         xml_state.current_accumulated_tag.clear();
@@ -49,8 +49,9 @@ pub fn process_xml_token(xml_state: &mut XmlState, token: &str) {
             if xml_state.current_accumulated_tag.starts_with("</") {
                 // Closing tag detected
                 xml_state.in_xml_body = false;
-                println!("XML Tag Content: {}", xml_state.xml_body_content);
+                let content = xml_state.xml_body_content.to_string();
                 xml_state.xml_body_content.clear(); // Clear the content for the next tag
+                return Some(content);
             } else {
                 // Opening tag detected
                 xml_state.in_xml_body = true;
@@ -67,4 +68,6 @@ pub fn process_xml_token(xml_state: &mut XmlState, token: &str) {
             xml_state.xml_body_content.push_str(token);
         }
     }
+
+    return None;
 }
