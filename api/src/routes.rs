@@ -130,10 +130,10 @@ pub async fn chat_generate(
                 &prompt,
                 512,
                 &model_state.chat_template.stops,
-                Some(Box::new(move |s, _is_last| {
+                Some(Box::new(move |s, is_last| {
                     let tx_arc = Arc::clone(&tx_arc_ref);
                     let mut xml_state = xml_state.lock().unwrap();
-                    if has_tools {
+                    if has_tools && !is_last {
                         let t = process_xml_token(&mut xml_state, &s);
                         if t.is_some() {
                             // Pull out tool calls
@@ -154,19 +154,17 @@ pub async fn chat_generate(
                     }
                     if !xml_state.halt_output && &s != ">" {
                         //Temp hack to avoid sending the last token
-                        utils::send_to_stream(
-                            Arc::clone(&tx_arc),
-                            &ChatGenerateResponseChuck::new_token(&model_name, &s),
-                        );
+                        let block = if !is_last {
+                            ChatGenerateResponseChuck::new_token(&model_name, &s)
+                        } else {
+                            ChatGenerateResponseChuck::new_halt(&s, "done")
+                        };
+                        utils::send_to_stream(Arc::clone(&tx_arc), &block);
                     }
                 })),
                 Some(false),
             )
             .expect("Failed to generate"); //TODO: At some point lets return the full info to the user
-            utils::send_to_stream(
-                tx_arc,
-                &ChatGenerateResponseChuck::new_halt(&r.generated_tokens_data.concat(), "done"),
-            );
         });
         let rx_stream = ReceiverStream::new(rx);
         return StreamBodyAs::json_nl(rx_stream).into_response();

@@ -181,6 +181,9 @@ pub fn generate(
 
     let t_main_end = ggml_time_us();
     let duration = Duration::from_micros((t_main_end - t_main_start) as u64);
+    if let Some(ref token_callback) = token_callback {
+        token_callback(generated_tokens_data.concat(), true);
+    }
     let llama_result = LlamaResult {
         n_tokens: n_cur,
         n_decode,

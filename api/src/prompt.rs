@@ -73,7 +73,7 @@ pub fn generate_chat_prompt(messages: &Vec<Message>, template: &ChatTemplate) ->
                 &tt.render("system", &ctx)
                     .expect("Could not render system template"),
             ),
-            "tool_calls" => prompt.push_str(
+            "tool_response" => prompt.push_str(
                 &tt.render("tool_calls", &ctx)
                     .expect("Could not render tool_calls template"),
             ),
