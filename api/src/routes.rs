@@ -122,7 +122,7 @@ pub async fn chat_generate(
         task::spawn(async move {
             let model_name = request_body.model.clone();
             let model_state = get_model!(&model_manager, &model_name); // I don't like this, but we need it for the threading
-            let xml_state = Arc::new(Mutex::new(XmlState::new())); // Assuming XML blocking is desired
+            let xml_state = Arc::new(Mutex::new(XmlState::new()));
             let r = pretty_generate(
                 model_state,
                 &model_manager.backend,
@@ -136,6 +136,7 @@ pub async fn chat_generate(
                         if t.is_some() {
                             // Pull out tool calls
                             let ts = t.unwrap();
+                            print!("ts {:?}", ts);
                             let tool_call = tools::parse_tool_call(&ts);
                             let tool_calls = if tool_call.is_some() {
                                 vec![tool_call.unwrap()]
@@ -149,10 +150,13 @@ pub async fn chat_generate(
                             );
                         }
                     }
-                    utils::send_to_stream(
-                        Arc::clone(&tx_arc),
-                        &ChatGenerateResponseChuck::new_token(&model_name, &s),
-                    );
+                    if !xml_state.halt_output && &s != ">" {
+                        //Temp hack to avoid sending the last token
+                        utils::send_to_stream(
+                            Arc::clone(&tx_arc),
+                            &ChatGenerateResponseChuck::new_token(&model_name, &s),
+                        );
+                    }
                 })),
                 Some(false),
             )

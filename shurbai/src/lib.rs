@@ -31,15 +31,11 @@ pub type TokenCallback = Box<dyn Fn(String, bool)>;
 mod grammar;
 pub mod types;
 
-/// Convert i32 to NonZeroU32
-fn i32_to_nonzero_u32(value: i32) -> Option<NonZeroU32> {
-    if value > 0 {
-        // Safe to cast since we know value is positive and i32 fits into u32
-        let u_value: u32 = value as u32;
-        // Safe to unwrap because we know u_value is non-zero
-        NonZeroU32::new(u_value)
+fn find_stops(s: Option<&Vec<String>>, t: &str) -> bool {
+    if s.is_some() {
+        s.unwrap().contains(&t.to_string())
     } else {
-        None
+        false
     }
 }
 
@@ -145,7 +141,9 @@ pub fn generate(
     let mut generated_tokens_data = Vec::new();
     let mut grammar = grammar::load_grammar();
     loop {
-        let mut is_last = n_cur == n_len;
+        if n_cur >= n_len {
+            break;
+        }
         let candidates = ctx.candidates_ith(batch.n_tokens() - 1);
         let mut candidates_p = LlamaTokenDataArray::from_iter(candidates, false);
 
@@ -161,32 +159,20 @@ pub fn generate(
         if json_format {
             ctx.grammar_accept_token(&mut grammar, new_token_id);
         }
-        if new_token_id == model.token_eos() {
-            is_last = true;
-        }
         let token_str = model.token_to_str(new_token_id).expect("That UTF8 shit"); // We should make EOS a blank string
-        print!("{}", token_str);
-        if let Some(stops) = stops {
-            if stops.iter().any(|stop| token_str.eq(stop)) {
-                is_last = true;
-            }
-        }
-        if is_last {
-            if let Some(ref token_callback) = token_callback {
-                token_callback("".to_string(), is_last);
-            }
+        if new_token_id == model.token_eos() || find_stops(stops, &token_str) {
             break;
-        } //TODO: This will be re done
+        }
+        print!("{}", token_str);
         generated_tokens.push(new_token_id);
         generated_tokens_data.push(token_str.clone()); //TODO: make that suck less
 
         if let Some(ref token_callback) = token_callback {
-            token_callback(token_str, is_last);
+            token_callback(token_str, false);
         }
 
         batch.clear();
         batch.add(new_token_id, n_cur, &[0], true)?;
-
         n_cur += 1;
         ctx.decode(&mut batch).with_context(|| "failed to eval")?;
         n_decode += 1;

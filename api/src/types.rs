@@ -10,6 +10,7 @@ pub struct XmlState {
     pub xml_tag_name: String,
     pub xml_body_content: String,
     pub current_accumulated_tag: String,
+    pub halt_output: bool,
 }
 
 impl XmlState {
@@ -20,6 +21,7 @@ impl XmlState {
             xml_tag_name: String::new(),
             xml_body_content: String::new(),
             current_accumulated_tag: String::new(),
+            halt_output: false,
         }
     }
 

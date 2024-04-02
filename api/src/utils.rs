@@ -41,6 +41,7 @@ pub fn process_xml_token(xml_state: &mut XmlState, token: &str) -> Option<String
     if token.contains("<") && !xml_state.in_xml_body {
         xml_state.in_xml_tag = true;
         xml_state.current_accumulated_tag.clear();
+        xml_state.halt_output = true;
     }
     if xml_state.in_xml_tag {
         xml_state.current_accumulated_tag.push_str(token);
@@ -50,6 +51,7 @@ pub fn process_xml_token(xml_state: &mut XmlState, token: &str) -> Option<String
                 // Closing tag detected
                 xml_state.in_xml_body = false;
                 let content = xml_state.xml_body_content.to_string();
+                xml_state.halt_output = false;
                 xml_state.xml_body_content.clear(); // Clear the content for the next tag
                 return Some(content);
             } else {
