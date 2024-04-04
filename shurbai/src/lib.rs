@@ -126,6 +126,7 @@ pub fn generate(
 ) -> Result<LlamaResult> {
     let mut batch = LlamaBatch::new(batch_size as usize, 1); //TODO: make this buffer size real
     let last_index: i32 = (tokens_list.len() - 1) as i32;
+    let mut t = 0;
     for (i, token) in (0_i32..).zip(tokens_list.into_iter()) {
         // llama_decode will output logits only for the last token of the prompt
         let is_last = i == last_index;
