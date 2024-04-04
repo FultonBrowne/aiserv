@@ -131,7 +131,6 @@ pub fn generate(
         let is_last = i == last_index;
         batch.add(token, i, &[0], is_last)?;
     }
-
     ctx.decode(&mut batch).expect("llama_decode() failed");
 
     let mut n_cur = batch.n_tokens();
@@ -232,6 +231,7 @@ pub fn pretty_generate(
     }
     let n_kv_req = tokens_list.len() as i32 + (max_tokens);
     // make sure the KV cache is big enough to hold all the prompt and generated tokens
+    println!("n_kv_req: {}", n_kv_req);
     let n_len = if n_kv_req > context_size as i32 {
         context_size as i32 //Look here for bugs in the future, I think it's fine but still
     } else {
