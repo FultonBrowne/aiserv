@@ -35,6 +35,7 @@ pub struct ModelDefinition {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 /// Represents the configuration options for a model.
 pub struct ModelConfig {
+    is_embedding_model: bool,        // default: false
     pub mirostat: Option<i32>,       // default: 0
     pub mirostat_eta: Option<f32>,   // default: 0.1
     pub mirostat_tau: Option<f32>,   // default: 5.0
@@ -68,6 +69,7 @@ pub struct ChatTemplate {
 impl Default for ModelConfig {
     fn default() -> Self {
         ModelConfig {
+            is_embedding_model: false,
             mirostat: Some(0),
             mirostat_eta: Some(0.1),
             mirostat_tau: Some(5.0),

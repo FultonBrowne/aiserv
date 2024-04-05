@@ -29,6 +29,7 @@ use std::time::Duration;
 
 pub type TokenCallback = Box<dyn Fn(String, bool)>;
 
+pub mod embeddings;
 mod grammar;
 pub mod types;
 

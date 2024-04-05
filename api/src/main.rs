@@ -27,6 +27,7 @@ async fn main() {
         .route("/models", get(routes::list_models))
         .route("/generate", post(routes::generate))
         .route("/generate/chat", post(routes::chat_generate))
+        .route("/embeddings", post(routes::generate_embeding))
         .layer(CorsLayer::permissive()) // add CORS headers to each response, this is just to get stage one working
         .with_state(model_manager);
 

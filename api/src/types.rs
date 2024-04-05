@@ -198,6 +198,19 @@ impl ChatGenerateResponseChuck {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct EmbeddingsResponse {
+    pub meta: ServerMetadata,
+    pub model: String,
+    pub embeddings: Vec<f32>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct EmbeddingsRequest {
+    pub model: String,
+    pub prompt: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ModelListObject {
     pub name: String,
     pub type_str: String,

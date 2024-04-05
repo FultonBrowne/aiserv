@@ -3,6 +3,7 @@ use std::sync::{Arc, Mutex};
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use axum_streams::StreamBodyAs;
 use shurbai::{
+    embeddings::generate_embeddings,
     pretty_generate,
     types::{LlamaResult, ModelManager},
 };
@@ -12,9 +13,9 @@ use tokio_stream::wrappers::ReceiverStream;
 use crate::{
     get_model, prompt, tools,
     types::{
-        ChatGenerateCall, ChatGenerateResponse, ChatGenerateResponseChuck, ErrorResponse,
-        GenerateCall, GenerateResponse, GeneratreResponseChuck, ListModelsResponse, Message,
-        ModelListObject, ServerMetadata, XmlState,
+        ChatGenerateCall, ChatGenerateResponse, ChatGenerateResponseChuck, EmbeddingsRequest,
+        EmbeddingsResponse, ErrorResponse, GenerateCall, GenerateResponse, GeneratreResponseChuck,
+        ListModelsResponse, Message, ModelListObject, ServerMetadata, XmlState,
     },
     utils::{self, has_model, process_xml_token},
 };
@@ -206,4 +207,26 @@ pub async fn list_models(State(model_manager): State<Arc<ModelManager>>) -> impl
         models,
     };
     (StatusCode::OK, Json(r))
+}
+
+pub async fn generate_embeding(
+    State(model_manager): State<Arc<ModelManager>>,
+    Json(request_body): Json<EmbeddingsRequest>,
+) -> impl IntoResponse {
+    if !has_model(&model_manager.as_ref(), &request_body.model) {
+        return (
+            StatusCode::NOT_FOUND,
+            Json(ErrorResponse::new("Model not found")),
+        )
+            .into_response();
+    }
+    let model_state = get_model!(&model_manager, &request_body.model);
+    let response = generate_embeddings(model_state, &model_manager.backend, &request_body.prompt)
+        .expect("Failed to generate");
+    let obj = EmbeddingsResponse {
+        meta: ServerMetadata::new(),
+        embeddings: response,
+        model: request_body.model.clone(),
+    };
+    (StatusCode::OK, Json(obj)).into_response()
 }
