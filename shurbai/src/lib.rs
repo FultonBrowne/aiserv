@@ -14,8 +14,8 @@ use llama_cpp_2::ggml_time_us;
 use llama_cpp_2::llama_backend::LlamaBackend;
 use llama_cpp_2::llama_batch::LlamaBatch;
 use llama_cpp_2::model::params::LlamaModelParams;
-use llama_cpp_2::model::AddBos;
 use llama_cpp_2::model::LlamaModel;
+use llama_cpp_2::model::{AddBos, Special};
 use llama_cpp_2::token::data_array::LlamaTokenDataArray;
 use llama_cpp_2::token::LlamaToken;
 use rand::Rng;
@@ -161,7 +161,9 @@ pub fn generate(
         if json_format {
             ctx.grammar_accept_token(&mut grammar, new_token_id);
         }
-        let token_str = model.token_to_str(new_token_id).expect("That UTF8 shit"); // We should make EOS a blank string
+        let token_str = model
+            .token_to_str(new_token_id, Special::Plaintext)
+            .expect("That UTF8 shit"); // We should make EOS a blank string
         if new_token_id == model.token_eos() || find_stops(stops, &token_str) {
             break;
         }

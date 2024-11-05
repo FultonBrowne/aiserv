@@ -14,7 +14,7 @@ pub fn generate_embeddings(
     prompt: &String,
 ) -> Result<Vec<f32>> {
     let ctx_params = LlamaContextParams::default()
-        .with_n_threads_batch(std::thread::available_parallelism()?.get() as u32)
+        .with_n_threads_batch(std::thread::available_parallelism()?.get() as i32)
         .with_embeddings(true);
     let mut ctx = model
         .model

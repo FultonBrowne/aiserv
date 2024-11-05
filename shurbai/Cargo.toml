@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.80"
-llama-cpp-2 = { version = "0.1.39", default-features = false }
+llama-cpp-2 = { version = "0.1.83", default-features = false }
 rand = "0.8.5"
 serde = { version = "1.0", features = ["derive"] }
 
