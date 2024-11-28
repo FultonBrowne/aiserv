@@ -1,11 +1,11 @@
-# AI Serv
+# AI Server
 
 A powerful, flexible, and simple LLM server powered by llamaCPP
 
 ## Modules
 
 - shurbai: The core AI module, responsible for all AI-related tasks
-- api: A very effiecient API powered by shurbai
+- api: A very efficient API powered by shurbai
 
 ## Usage
 
