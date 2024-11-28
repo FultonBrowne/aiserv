@@ -1,4 +1,4 @@
-# Friday Server
+# AI Serv
 
 A powerful, flexible, and simple LLM server powered by llamaCPP
 
@@ -19,3 +19,7 @@ cd ..
 ```
 
 You must run the server in the same directory as the config.json file, that will change in the future
+
+## History
+
+This Server was built as an intern project and a candidate for client deployment during my time at Shurburt LLC. It was built under the supervision of (and for other, components, in collaboration with) Kevin Auer, Jay North, Kelsey Weeks, and Ian Harrison. It is now being run as its own little hobby project under the GPL-3.0 License.
